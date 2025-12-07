@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "821114857636",
+    "project_id": "smrs-77bed",
+    "storage_bucket": "smrs-77bed.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821114857636:android:0d48cf673e4d81f3d75e31",
+        "android_client_info": {
+          "package_name": "com.example.smrs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-sqXz_0iKROSYHD9-xhFaI1TJOQAmaT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

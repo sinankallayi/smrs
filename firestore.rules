@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =========================================================================
+    // HELPER FUNCTIONS
+    // =========================================================================
+    
+    // Get the user data for the authenticated user
+    function getCurrentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Check if the user is a Manager or MD
+    function isManagerOrMD() {
+      let userData = getCurrentUser().data;
+      return userData.role == 'manager' || userData.role == 'md';
+    }
+
+    // =========================================================================
+    // COLLECTIONS
+    // =========================================================================
+
+    // USERS COLLECTION
+    // Users can read/update their own profile.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null; // Allowed during registration
+    }
+
+    // LEAVES COLLECTION
+    match /leaves/{leaveId} {
+      // Create: Authenticated users can create their own requests
+      // Enforces that the 'userId' field in the document matches the auth UID.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Read: Users can see their own leaves. Managers/MDs can see all.
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isManagerOrMD()
+      );
+      
+      // Update:
+      // - Managers/MDs can update (e.g., to approve/reject).
+      // - Owners can update (e.g., to cancel or edit details).
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isManagerOrMD()
+      );
+
+      // Delete: Managers/MDs or the owner can delete.
+      allow delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isManagerOrMD()
+      );
+    }
+  }
+}
