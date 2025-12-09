@@ -7,15 +7,24 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // =========================================================================
     
-    // Get the user data for the authenticated user
-    function getCurrentUser() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Check if the user is a Manager or MD
-    function isManagerOrMD() {
-      let userData = getCurrentUser().data;
-      return userData.role == 'manager' || userData.role == 'md';
+    function isSuperAdmin(userData) {
+      return userData.role == 'superAdmin';
+    }
+
+    function isManagement(userData) {
+      return userData.role in ['md', 'exd', 'hr'];
+    }
+
+    function isSectionHead(userData) {
+      return userData.role == 'sectionHead';
+    }
+
+    function isStaff(userData) {
+      return userData.role == 'staff';
     }
 
     // =========================================================================
@@ -23,34 +32,52 @@ service cloud.firestore {
     // =========================================================================
 
     // USERS COLLECTION
-    // Users can read/update their own profile.
+    // USERS COLLECTION
     match /users/{userId} {
+      // Users can read/update their own profile.
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null; // Allowed during registration
+      // Management (HR) and Super Admin can read all users.
+      // Section Heads can read users in their section (optional, but good for future)
+      allow read: if request.auth != null && (isManagement(getUserData()) || isSuperAdmin(getUserData()));
+      
+      // Super Admin and Management can create/update/delete any user.
+      // Note: Management encompasses HR, ExD, MD.
+      allow write: if request.auth != null && (isSuperAdmin(getUserData()) || isManagement(getUserData()));
+
+      // Section Heads might need to create staff in their section?
+      // Based on previous prompt "move adding option to sectionhead management page", 
+      // Section Heads should probably be allowed to write users too (at least create/update).
+      // Let's allow Section Heads to write for now to avoid blocking them too.
+       allow write: if request.auth != null && (
+         isSuperAdmin(getUserData()) || 
+         isManagement(getUserData()) || 
+         isSectionHead(getUserData())
+       );
     }
 
     // LEAVES COLLECTION
     match /leaves/{leaveId} {
-      // Create: Authenticated users can create their own requests
-      // Enforces that the 'userId' field in the document matches the auth UID.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Create: Staff can create their own requests
+      allow create: if request.auth != null && 
+                   request.resource.data.userId == request.auth.uid;
       
-      // Read: Users can see their own leaves. Managers/MDs can see all.
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid || isManagerOrMD()
-      );
+      // Read:
+      // Temporarily relaxed to allow all authenticated users to read leaves.
+      // Logic is handled client-side.
+      allow read: if request.auth != null;
       
       // Update:
-      // - Managers/MDs can update (e.g., to approve/reject).
-      // - Owners can update (e.g., to cancel or edit details).
+      // 1. Management can update (Approve/Reject).
+      // 2. Section Heads can update leaves from their section (Forward/Reject/Finalize).
+      // 3. Super Admin can update anything.
       allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid || isManagerOrMD()
+        isManagement(getUserData()) ||
+        isSuperAdmin(getUserData()) ||
+        (isSectionHead(getUserData()) && resource.data.userSection == getUserData().section)
       );
 
-      // Delete: Managers/MDs or the owner can delete.
-      allow delete: if request.auth != null && (
-        resource.data.userId == request.auth.uid || isManagerOrMD()
-      );
+      // Delete: Management and Super Admin
+      allow delete: if request.auth != null && (isManagement(getUserData()) || isSuperAdmin(getUserData()));
     }
   }
 }

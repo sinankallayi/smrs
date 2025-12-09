@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/login_screen.dart';
-import '../../features/auth/register_screen.dart';
+
 import '../../features/dashboard/dashboard_screen.dart';
 
 part 'router.g.dart';
@@ -23,15 +23,14 @@ GoRouter router(RouterRef ref) {
       final isAuthenticated = authState.valueOrNull != null;
 
       final isLogin = state.uri.toString() == '/login';
-      final isRegister = state.uri.toString() == '/register';
 
       if (isLoading || hasError) return null;
 
-      if (!isAuthenticated && !isLogin && !isRegister) {
+      if (!isAuthenticated && !isLogin) {
         return '/login';
       }
 
-      if (isAuthenticated && (isLogin || isRegister)) {
+      if (isAuthenticated && isLogin) {
         return '/';
       }
 
@@ -39,10 +38,6 @@ GoRouter router(RouterRef ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
-      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const DashboardScreen(),

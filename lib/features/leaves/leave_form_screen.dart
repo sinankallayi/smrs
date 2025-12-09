@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 import '../../shared/models/leave_request_model.dart';
+import '../../shared/models/user_model.dart';
 import '../../shared/widgets/glass_container.dart';
 import '../auth/auth_provider.dart';
 import 'leave_service.dart';
@@ -40,16 +41,26 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
 
       if (userDetails == null) throw Exception('User not found');
 
+      // Ensure user has a section (Section Head needs to know where to route)
+      if (userDetails.section == null && userDetails.role == UserRole.staff) {
+        throw Exception('User has no section assigned');
+      }
+
       final leave = LeaveRequestModel(
         id: const Uuid().v4(),
         userId: userDetails.id,
         userName: userDetails.name,
-        userRole: userDetails.role.name,
+        userRole: userDetails.role,
+        userSection:
+            userDetails.section ??
+            UserSection.bakery, // Fallback if managed user
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
         status: LeaveStatus.pending,
+        currentStage: LeaveStage.sectionHeadReview,
         appliedAt: DateTime.now(),
+        timeline: [],
       );
 
       await ref.read(leaveServiceProvider.notifier).createLeave(leave);

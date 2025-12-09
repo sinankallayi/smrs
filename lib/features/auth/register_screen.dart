@@ -13,18 +13,37 @@ class RegisterScreen extends ConsumerStatefulWidget {
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
+enum UserType { management, sectionHead }
+
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _selectedRole = UserRole.staff;
+
+  UserType _userType = UserType.sectionHead;
+  UserRole _selectedRole = UserRole.md;
+  UserSection _selectedSection = UserSection.bakery;
+
   bool _isLoading = false;
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+
+    // Determine Role and Section based on UserType
+    UserRole finalRole;
+    UserSection? finalSection;
+
+    if (_userType == UserType.management) {
+      finalRole = _selectedRole;
+      finalSection = null;
+    } else {
+      finalRole = UserRole.sectionHead;
+      finalSection = _selectedSection;
+    }
+
     try {
       await ref
           .read(authControllerProvider.notifier)
@@ -32,7 +51,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
             name: _nameController.text.trim(),
-            role: _selectedRole,
+            role: finalRole,
+            section: finalSection,
           );
       if (mounted) context.go('/');
     } catch (e) {
@@ -132,27 +152,92 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<UserRole>(
-                        value: _selectedRole,
+
+                      // User Type Dropdown
+                      DropdownButtonFormField<UserType>(
+                        value: _userType,
                         dropdownColor: Colors.black87,
                         decoration: const InputDecoration(
+                          labelText: 'User Type',
+                          labelStyle: TextStyle(color: Colors.white70),
                           filled: true,
                           fillColor: Colors.white10,
                           border: InputBorder.none,
                           prefixIcon: Icon(
-                            LucideIcons.shield,
+                            LucideIcons.users,
                             color: Colors.white70,
                           ),
                         ),
                         style: const TextStyle(color: Colors.white),
-                        items: UserRole.values.map((role) {
-                          return DropdownMenuItem(
-                            value: role,
-                            child: Text(role.name.toUpperCase()),
-                          );
-                        }).toList(),
-                        onChanged: (v) => setState(() => _selectedRole = v!),
+                        items: [
+                          DropdownMenuItem(
+                            value: UserType.sectionHead,
+                            child: const Text('Section Head'),
+                          ),
+                          DropdownMenuItem(
+                            value: UserType.management,
+                            child: const Text('Management'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _userType = v!),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Conditional: Section Dropdown
+                      if (_userType == UserType.sectionHead)
+                        DropdownButtonFormField<UserSection>(
+                          value: _selectedSection,
+                          dropdownColor: Colors.black87,
+                          decoration: const InputDecoration(
+                            labelText: 'Section',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            filled: true,
+                            fillColor: Colors.white10,
+                            border: InputBorder.none,
+                            prefixIcon: Icon(
+                              LucideIcons.store,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          items: UserSection.values.map((section) {
+                            return DropdownMenuItem(
+                              value: section,
+                              child: Text(section.name.toUpperCase()),
+                            );
+                          }).toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedSection = v!),
+                        ),
+
+                      // Conditional: Role Dropdown
+                      if (_userType == UserType.management)
+                        DropdownButtonFormField<UserRole>(
+                          value: _selectedRole,
+                          dropdownColor: Colors.black87,
+                          decoration: const InputDecoration(
+                            labelText: 'Role',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            filled: true,
+                            fillColor: Colors.white10,
+                            border: InputBorder.none,
+                            prefixIcon: Icon(
+                              LucideIcons.shield,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          items: [UserRole.md, UserRole.exd, UserRole.hr].map((
+                            role,
+                          ) {
+                            return DropdownMenuItem(
+                              value: role,
+                              child: Text(role.name.toUpperCase()),
+                            );
+                          }).toList(),
+                          onChanged: (v) => setState(() => _selectedRole = v!),
+                        ),
+
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,

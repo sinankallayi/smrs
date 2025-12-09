@@ -23,7 +23,7 @@ final userProfileProvider = AutoDisposeStreamProvider<UserModel?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserProfileRef = AutoDisposeStreamProviderRef<UserModel?>;
-String _$authControllerHash() => r'2c720846cf0cdb4fe4b79b4178dd28cd2282f20a';
+String _$authControllerHash() => r'bde7dae80b9889178b668a099a83b3cb279a3e2a';
 
 /// See also [AuthController].
 @ProviderFor(AuthController)

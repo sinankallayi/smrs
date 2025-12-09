@@ -25,6 +25,10 @@ mixin _$UserModel {
   String get email => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   UserRole get role => throw _privateConstructorUsedError;
+  UserSection? get section => throw _privateConstructorUsedError;
+  String? get createdBy =>
+      throw _privateConstructorUsedError; // For staff created by HR
+  bool get isActive => throw _privateConstructorUsedError;
 
   /// Serializes this UserModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -41,7 +45,15 @@ abstract class $UserModelCopyWith<$Res> {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) then) =
       _$UserModelCopyWithImpl<$Res, UserModel>;
   @useResult
-  $Res call({String id, String email, String name, UserRole role});
+  $Res call({
+    String id,
+    String email,
+    String name,
+    UserRole role,
+    UserSection? section,
+    String? createdBy,
+    bool isActive,
+  });
 }
 
 /// @nodoc
@@ -63,6 +75,9 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
     Object? email = null,
     Object? name = null,
     Object? role = null,
+    Object? section = freezed,
+    Object? createdBy = freezed,
+    Object? isActive = null,
   }) {
     return _then(
       _value.copyWith(
@@ -82,6 +97,18 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
                       as UserRole,
+            section: freezed == section
+                ? _value.section
+                : section // ignore: cast_nullable_to_non_nullable
+                      as UserSection?,
+            createdBy: freezed == createdBy
+                ? _value.createdBy
+                : createdBy // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isActive: null == isActive
+                ? _value.isActive
+                : isActive // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -97,7 +124,15 @@ abstract class _$$UserModelImplCopyWith<$Res>
   ) = __$$UserModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String email, String name, UserRole role});
+  $Res call({
+    String id,
+    String email,
+    String name,
+    UserRole role,
+    UserSection? section,
+    String? createdBy,
+    bool isActive,
+  });
 }
 
 /// @nodoc
@@ -118,6 +153,9 @@ class __$$UserModelImplCopyWithImpl<$Res>
     Object? email = null,
     Object? name = null,
     Object? role = null,
+    Object? section = freezed,
+    Object? createdBy = freezed,
+    Object? isActive = null,
   }) {
     return _then(
       _$UserModelImpl(
@@ -137,6 +175,18 @@ class __$$UserModelImplCopyWithImpl<$Res>
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
                   as UserRole,
+        section: freezed == section
+            ? _value.section
+            : section // ignore: cast_nullable_to_non_nullable
+                  as UserSection?,
+        createdBy: freezed == createdBy
+            ? _value.createdBy
+            : createdBy // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isActive: null == isActive
+            ? _value.isActive
+            : isActive // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -150,6 +200,9 @@ class _$UserModelImpl implements _UserModel {
     required this.email,
     required this.name,
     required this.role,
+    this.section,
+    this.createdBy,
+    this.isActive = true,
   });
 
   factory _$UserModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -163,10 +216,18 @@ class _$UserModelImpl implements _UserModel {
   final String name;
   @override
   final UserRole role;
+  @override
+  final UserSection? section;
+  @override
+  final String? createdBy;
+  // For staff created by HR
+  @override
+  @JsonKey()
+  final bool isActive;
 
   @override
   String toString() {
-    return 'UserModel(id: $id, email: $email, name: $name, role: $role)';
+    return 'UserModel(id: $id, email: $email, name: $name, role: $role, section: $section, createdBy: $createdBy, isActive: $isActive)';
   }
 
   @override
@@ -177,12 +238,26 @@ class _$UserModelImpl implements _UserModel {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.email, email) || other.email == email) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.role, role) || other.role == role));
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.section, section) || other.section == section) &&
+            (identical(other.createdBy, createdBy) ||
+                other.createdBy == createdBy) &&
+            (identical(other.isActive, isActive) ||
+                other.isActive == isActive));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, email, name, role);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    email,
+    name,
+    role,
+    section,
+    createdBy,
+    isActive,
+  );
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -204,6 +279,9 @@ abstract class _UserModel implements UserModel {
     required final String email,
     required final String name,
     required final UserRole role,
+    final UserSection? section,
+    final String? createdBy,
+    final bool isActive,
   }) = _$UserModelImpl;
 
   factory _UserModel.fromJson(Map<String, dynamic> json) =
@@ -217,6 +295,12 @@ abstract class _UserModel implements UserModel {
   String get name;
   @override
   UserRole get role;
+  @override
+  UserSection? get section;
+  @override
+  String? get createdBy; // For staff created by HR
+  @override
+  bool get isActive;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.

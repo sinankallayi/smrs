@@ -6,7 +6,9 @@ import '../../features/auth/auth_provider.dart';
 import '../../features/leaves/leave_list_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import 'home_screen.dart';
+import 'manage_staff_screen.dart';
 import '../../features/leaves/leave_form_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -24,66 +26,97 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // For now, general tabs for everyone.
     final userAsync = ref.watch(userProfileProvider);
 
-    return Scaffold(
-      extendBody: true, // For glass effect on bottom nav
-      body: userAsync.when(
-        data: (user) {
-          if (user == null)
-            return const Center(child: CircularProgressIndicator());
+    return userAsync.when(
+      data: (user) {
+        if (user == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-          final pages = [
-            HomeScreen(user: user),
-            LeaveListScreen(user: user), // We will implement this
-            Container(), // Notifications placeholder
-            const SettingsScreen(), // We will implement this
-          ];
+        if (user.role == UserRole.superAdmin) {
+          return const AdminDashboardScreen();
+        }
 
-          return IndexedStack(index: _selectedIndex, children: pages);
-        },
-        error: (e, s) => Center(child: Text('Error: $e')),
-        loading: () => const Center(child: CircularProgressIndicator()),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.2))),
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-          backgroundColor:
-              Colors.transparent, // Glass effect handled by container
-          elevation: 0,
-          indicatorColor: Theme.of(
-            context,
-          ).colorScheme.primary.withOpacity(0.2),
-          destinations: const [
-            NavigationDestination(icon: Icon(LucideIcons.home), label: 'Home'),
-            NavigationDestination(
-              icon: Icon(LucideIcons.calendar),
-              label: 'Leaves',
+        List<Widget> pages = [
+          HomeScreen(user: user),
+          LeaveListScreen(user: user),
+          Container(), // Notifications placeholder
+          const SettingsScreen(),
+        ];
+
+        List<NavigationDestination> destinations = [
+          const NavigationDestination(
+            icon: Icon(LucideIcons.home),
+            label: 'Home',
+          ),
+          const NavigationDestination(
+            icon: Icon(LucideIcons.calendar),
+            label: 'Leaves',
+          ),
+          const NavigationDestination(
+            icon: Icon(LucideIcons.bell),
+            label: 'Inbox',
+          ),
+          const NavigationDestination(
+            icon: Icon(LucideIcons.settings),
+            label: 'Settings',
+          ),
+        ];
+
+        if (user.role == UserRole.hr) {
+          pages.insert(3, const ManageStaffScreen());
+          destinations.insert(
+            3,
+            const NavigationDestination(
+              icon: Icon(LucideIcons.users),
+              label: 'Staff',
             ),
-            NavigationDestination(icon: Icon(LucideIcons.bell), label: 'Inbox'),
-            NavigationDestination(
-              icon: Icon(LucideIcons.settings),
-              label: 'Settings',
+          );
+        }
+
+        return Scaffold(
+          extendBody: true,
+          body: IndexedStack(index: _selectedIndex, children: pages),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              border: Border(
+                top: BorderSide(color: Colors.white.withOpacity(0.2)),
+              ),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton:
-          (_selectedIndex == 1 && userAsync.valueOrNull?.role == UserRole.staff)
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LeaveFormScreen()),
-                );
-              },
-              child: const Icon(LucideIcons.plus),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+            child: NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) =>
+                  setState(() => _selectedIndex = idx),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              indicatorColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.2),
+              destinations: destinations,
+            ),
+          ),
+          floatingActionButton:
+              (_selectedIndex == 1 && user.role == UserRole.staff)
+              ? FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LeaveFormScreen(),
+                      ),
+                    );
+                  },
+                  child: const Icon(LucideIcons.plus),
+                )
+              : null,
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        );
+      },
+      error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 }

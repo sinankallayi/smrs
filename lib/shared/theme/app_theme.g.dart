@@ -1,26 +1,26 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'leave_service.dart';
+part of 'app_theme.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$leaveServiceHash() => r'a64cb03e096c572d17bcfa73524286cada90e38c';
+String _$themeControllerHash() => r'e3a58171a306c1c95a84e6c582af78d43f9346c6';
 
-/// See also [LeaveService].
-@ProviderFor(LeaveService)
-final leaveServiceProvider =
-    AutoDisposeNotifierProvider<LeaveService, void>.internal(
-      LeaveService.new,
-      name: r'leaveServiceProvider',
+/// See also [ThemeController].
+@ProviderFor(ThemeController)
+final themeControllerProvider =
+    AutoDisposeNotifierProvider<ThemeController, ThemeMode>.internal(
+      ThemeController.new,
+      name: r'themeControllerProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$leaveServiceHash,
+          : _$themeControllerHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$LeaveService = AutoDisposeNotifier<void>;
+typedef _$ThemeController = AutoDisposeNotifier<ThemeMode>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

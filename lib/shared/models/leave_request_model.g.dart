@@ -6,29 +6,50 @@ part of 'leave_request_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$TimelineEntryImpl _$$TimelineEntryImplFromJson(Map<String, dynamic> json) =>
+    _$TimelineEntryImpl(
+      byUserId: json['byUserId'] as String,
+      byUserName: json['byUserName'] as String,
+      byUserRole: json['byUserRole'] as String,
+      status: json['status'] as String,
+      remark: json['remark'] as String,
+      date: const TimestampConverter().fromJson(json['date'] as Timestamp),
+    );
+
+Map<String, dynamic> _$$TimelineEntryImplToJson(_$TimelineEntryImpl instance) =>
+    <String, dynamic>{
+      'byUserId': instance.byUserId,
+      'byUserName': instance.byUserName,
+      'byUserRole': instance.byUserRole,
+      'status': instance.status,
+      'remark': instance.remark,
+      'date': const TimestampConverter().toJson(instance.date),
+    };
+
 _$LeaveRequestModelImpl _$$LeaveRequestModelImplFromJson(
   Map<String, dynamic> json,
 ) => _$LeaveRequestModelImpl(
   id: json['id'] as String,
   userId: json['userId'] as String,
   userName: json['userName'] as String,
-  userRole: json['userRole'] as String,
+  userRole: $enumDecode(_$UserRoleEnumMap, json['userRole']),
+  userSection: $enumDecode(_$UserSectionEnumMap, json['userSection']),
   startDate: const TimestampConverter().fromJson(
     json['startDate'] as Timestamp,
   ),
   endDate: const TimestampConverter().fromJson(json['endDate'] as Timestamp),
   reason: json['reason'] as String,
   status: $enumDecode(_$LeaveStatusEnumMap, json['status']),
+  currentStage: $enumDecode(_$LeaveStageEnumMap, json['currentStage']),
   appliedAt: const TimestampConverter().fromJson(
     json['appliedAt'] as Timestamp,
   ),
-  actionByUserId: json['actionByUserId'] as String?,
-  actionByName: json['actionByName'] as String?,
-  actionByRole: json['actionByRole'] as String?,
-  actionDate: _$JsonConverterFromJson<Timestamp, DateTime>(
-    json['actionDate'],
-    const TimestampConverter().fromJson,
-  ),
+  timeline:
+      (json['timeline'] as List<dynamic>?)
+          ?.map((e) => TimelineEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  isActive: json['isActive'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$$LeaveRequestModelImplToJson(
@@ -37,33 +58,43 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'id': instance.id,
   'userId': instance.userId,
   'userName': instance.userName,
-  'userRole': instance.userRole,
+  'userRole': _$UserRoleEnumMap[instance.userRole]!,
+  'userSection': _$UserSectionEnumMap[instance.userSection]!,
   'startDate': const TimestampConverter().toJson(instance.startDate),
   'endDate': const TimestampConverter().toJson(instance.endDate),
   'reason': instance.reason,
   'status': _$LeaveStatusEnumMap[instance.status]!,
+  'currentStage': _$LeaveStageEnumMap[instance.currentStage]!,
   'appliedAt': const TimestampConverter().toJson(instance.appliedAt),
-  'actionByUserId': instance.actionByUserId,
-  'actionByName': instance.actionByName,
-  'actionByRole': instance.actionByRole,
-  'actionDate': _$JsonConverterToJson<Timestamp, DateTime>(
-    instance.actionDate,
-    const TimestampConverter().toJson,
-  ),
+  'timeline': instance.timeline,
+  'isActive': instance.isActive,
+};
+
+const _$UserRoleEnumMap = {
+  UserRole.md: 'md',
+  UserRole.exd: 'exd',
+  UserRole.hr: 'hr',
+  UserRole.sectionHead: 'sectionHead',
+  UserRole.staff: 'staff',
+};
+
+const _$UserSectionEnumMap = {
+  UserSection.bakery: 'bakery',
+  UserSection.fancy: 'fancy',
+  UserSection.vegetable: 'vegetable',
 };
 
 const _$LeaveStatusEnumMap = {
   LeaveStatus.pending: 'pending',
+  LeaveStatus.forwarded: 'forwarded',
+  LeaveStatus.managementApproved: 'management_approved',
   LeaveStatus.approved: 'approved',
   LeaveStatus.rejected: 'rejected',
 };
 
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
+const _$LeaveStageEnumMap = {
+  LeaveStage.sectionHeadReview: 'section_head_review',
+  LeaveStage.managementReview: 'management_review',
+  LeaveStage.finalization: 'finalization',
+  LeaveStage.completed: 'completed',
+};

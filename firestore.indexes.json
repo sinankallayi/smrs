@@ -13,6 +13,34 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "leaves",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "currentStage",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "appliedAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "leaves",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userSection",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "appliedAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []
