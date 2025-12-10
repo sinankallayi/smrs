@@ -370,7 +370,7 @@ class _LeaveCard extends ConsumerWidget {
                                       entry.byUserRole ==
                                               AppRoles.sectionHead &&
                                           entry.byUserSection != null
-                                      ? '${entry.byUserName} (${entry.byUserRole} - ${entry.byUserSection}) '
+                                      ? '${entry.byUserName} (${entry.byUserSection}) '
                                       : '${entry.byUserName} (${entry.byUserRole}) ',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,

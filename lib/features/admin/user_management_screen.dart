@@ -95,7 +95,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       ),
                       title: Text(user.name),
                       subtitle: Text(
-                        '${user.email} • ${user.role.toUpperCase()}',
+                        '${user.email} • ${user.section != null ? user.section!.toUpperCase() : user.role.toUpperCase()}',
                       ),
                       trailing: IconButton(
                         icon: const Icon(LucideIcons.trash2, color: Colors.red),
