@@ -73,6 +73,22 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               GlassContainer(
+                child: Column(
+                  children: [
+                    _buildSectionHeader('Account'),
+                    ListTile(
+                      leading: const Icon(LucideIcons.lock),
+                      title: const Text('Change Password'),
+                      trailing: const Icon(LucideIcons.chevronRight),
+                      onTap: () => _showChangePasswordDialog(context, ref),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              GlassContainer(
                 child: ListTile(
                   leading: const Icon(LucideIcons.logOut, color: Colors.red),
                   title: const Text(
@@ -104,6 +120,113 @@ class SettingsScreen extends ConsumerWidget {
             color: Colors.grey,
           ),
         ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Change Password'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: currentPassController,
+                    decoration: const InputDecoration(
+                      labelText: 'Current Password',
+                    ),
+                    obscureText: true,
+                    validator: (v) => v!.isEmpty ? 'Required' : null,
+                  ),
+                  TextFormField(
+                    controller: newPassController,
+                    decoration: const InputDecoration(
+                      labelText: 'New Password',
+                    ),
+                    obscureText: true,
+                    validator: (v) =>
+                        v!.length < 6 ? 'Min 6 chars required' : null,
+                  ),
+                  TextFormField(
+                    controller: confirmPassController,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm Password',
+                    ),
+                    obscureText: true,
+                    validator: (v) {
+                      if (v != newPassController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              if (!isLoading)
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (formKey.currentState!.validate()) {
+                          setState(() => isLoading = true);
+                          try {
+                            await ref
+                                .read(authControllerProvider.notifier)
+                                .changePassword(
+                                  currentPassword: currentPassController.text
+                                      .trim(),
+                                  newPassword: newPassController.text.trim(),
+                                );
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Password changed successfully',
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() => isLoading = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(),
+                      )
+                    : const Text('Change'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
