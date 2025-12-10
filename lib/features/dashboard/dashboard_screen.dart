@@ -42,7 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         List<Widget> pages = [
           HomeScreen(user: user),
           LeaveListScreen(user: user),
-          Container(), // Notifications placeholder
+          // Container(), // Notifications placeholder - Removed
           const SettingsScreen(),
         ];
 
@@ -55,10 +55,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             icon: Icon(LucideIcons.calendar),
             label: 'Leaves',
           ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.bell),
-            label: 'Inbox',
-          ),
+
           const NavigationDestination(
             icon: Icon(LucideIcons.settings),
             label: 'Settings',
@@ -66,9 +63,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ];
 
         if (user.role == AppRoles.hr) {
-          pages.insert(3, const ManageStaffScreen());
+          pages.insert(2, const ManageStaffScreen());
           destinations.insert(
-            3,
+            2,
             const NavigationDestination(
               icon: Icon(LucideIcons.users),
               label: 'Staff',

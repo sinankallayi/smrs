@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isObscured = true;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -96,17 +97,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _isObscured,
+                        decoration: InputDecoration(
                           hintText: 'Password',
-                          prefixIcon: Icon(
+                          prefixIcon: const Icon(
                             LucideIcons.lock,
                             color: Colors.white70,
+                          ),
+                          suffixIcon: GestureDetector(
+                            onTap: () =>
+                                setState(() => _isObscured = !_isObscured),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (child, anim) =>
+                                  FadeTransition(opacity: anim, child: child),
+                              child: Icon(
+                                _isObscured
+                                    ? LucideIcons.eye
+                                    : LucideIcons.eyeOff,
+                                key: ValueKey<bool>(_isObscured),
+                                color: Colors.white70,
+                              ),
+                            ),
                           ),
                           filled: true,
                           fillColor: Colors.white10,
                           border: InputBorder.none,
-                          hintStyle: TextStyle(color: Colors.white60),
+                          hintStyle: const TextStyle(color: Colors.white60),
                         ),
                         style: const TextStyle(color: Colors.white),
                         validator: (v) => v!.isEmpty ? 'Required' : null,
