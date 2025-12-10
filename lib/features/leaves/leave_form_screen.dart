@@ -32,6 +32,13 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       return;
     }
 
+    if (_endDate!.isBefore(_startDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End date cannot be before start date')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authControllerProvider).value!;
@@ -82,20 +89,43 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
   }
 
   Future<void> _pickDate(bool isStart) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // For End Date, the earliest valid date is the selected Start Date (or today)
+    // For Start Date, the earliest valid date is today
+    final firstDate = isStart ? today : (_startDate ?? today);
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: isStart
+          ? (_startDate ?? today)
+          // Ensure initialDate for End Date is valid (>= firstDate)
+          : (_endDate != null && _endDate!.isAfter(firstDate)
+                ? _endDate!
+                : firstDate),
+      firstDate: firstDate,
+      lastDate: today.add(const Duration(days: 365)),
     );
+
     if (picked != null) {
       setState(() {
         if (isStart) {
           _startDate = picked;
+          // If the new Start Date is after the existing End Date, reset End Date
           if (_endDate != null && _endDate!.isBefore(_startDate!)) {
             _endDate = null;
           }
         } else {
+          // Double check to ensure End Date is not before Start Date
+          if (_startDate != null && picked.isBefore(_startDate!)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('End date cannot be before start date'),
+              ),
+            );
+            return;
+          }
           _endDate = picked;
         }
       });
