@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,6 +25,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isObscured = true;
   bool _isPasswordFocused = false;
   double _textPosition = 0.0;
+  String? _mascotMessage;
+  bool _isMascotError = false;
+  Timer? _messageTimer;
 
   @override
   void initState() {
@@ -52,11 +56,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
+    _messageTimer?.cancel();
     super.dispose();
   }
 
+  void _showMascotMessage(String message, {bool isError = false}) {
+    _messageTimer?.cancel();
+    setState(() {
+      _mascotMessage = message;
+      _isMascotError = isError;
+    });
+    _messageTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _mascotMessage = null;
+          _isMascotError = false;
+        });
+      }
+    });
+  }
+
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _showMascotMessage("Please fill in all fields!", isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -69,9 +93,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Navigation is handled by router redirect
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        // Show error via mascot
+        _showMascotMessage(
+          "Oops! ${e.toString().split(']').last.trim()}",
+          isError: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -106,6 +132,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   LoginMascot(
                     isPasswordFocused: _isPasswordFocused,
                     textPosition: _textPosition,
+                    message: _mascotMessage,
+                    isError: _isMascotError,
                   ),
                   const SizedBox(height: 20),
                   GlassContainer(

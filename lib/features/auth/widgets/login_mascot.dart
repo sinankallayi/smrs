@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class LoginMascot extends StatelessWidget {
   final bool isPasswordFocused;
   final double textPosition; // 0.0 to 1.0
+  final String? message;
+  final bool isError;
 
   const LoginMascot({
     super.key,
     required this.isPasswordFocused,
     required this.textPosition,
+    this.message,
+    this.isError = false,
   });
 
   @override
@@ -17,7 +21,50 @@ class LoginMascot extends StatelessWidget {
       width: 120,
       child: Stack(
         alignment: Alignment.center,
+        clipBehavior: Clip.none, // Allow bubble to overflow
         children: [
+          // Speech Bubble
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            top: message != null ? -60 : 20, // Pop up animation
+            right: -80,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: message != null ? 1.0 : 0.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                constraints: const BoxConstraints(maxWidth: 160),
+                decoration: BoxDecoration(
+                  color: isError ? Colors.red[100] : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isError ? Colors.red : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  message ?? '',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isError ? Colors.red[900] : Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
           // Head
           Container(
             width: 100,
@@ -118,20 +165,32 @@ class LoginMascot extends StatelessWidget {
             ),
           ),
 
-          // Mouth (Smile)
+          // Mouth (Smile or Sad)
           Positioned(
             top: 75,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               width: 20,
-              height: 10,
+              height: isError ? 10 : 10,
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(width: 2, color: Colors.grey[800]!),
+                  // If error, curve up (frown), else curve down (smile)
+                  top: isError
+                      ? BorderSide(width: 2, color: Colors.grey[800]!)
+                      : BorderSide.none,
+                  bottom: isError
+                      ? BorderSide.none
+                      : BorderSide(width: 2, color: Colors.grey[800]!),
                 ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
+                borderRadius: isError
+                    ? const BorderRadius.only(
+                        topLeft: Radius.circular(10),
+                        topRight: Radius.circular(10),
+                      )
+                    : const BorderRadius.only(
+                        bottomLeft: Radius.circular(10),
+                        bottomRight: Radius.circular(10),
+                      ),
               ),
             ),
           ),
