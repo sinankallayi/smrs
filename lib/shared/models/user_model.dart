@@ -3,28 +3,30 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
 
-enum UserRole {
-  @JsonValue('superAdmin')
-  superAdmin,
-  @JsonValue('md')
-  md,
-  @JsonValue('exd')
-  exd,
-  @JsonValue('hr')
-  hr,
-  @JsonValue('sectionHead')
-  sectionHead,
-  @JsonValue('staff')
-  staff,
+class AppRoles {
+  static const String superAdmin = 'superAdmin';
+  static const String md = 'md';
+  static const String exd = 'exd';
+  static const String hr = 'hr';
+  static const String sectionHead = 'sectionHead';
+  static const String staff = 'staff';
+
+  static const List<String> values = [
+    superAdmin,
+    md,
+    exd,
+    hr,
+    sectionHead,
+    staff,
+  ];
 }
 
-enum UserSection {
-  @JsonValue('bakery')
-  bakery,
-  @JsonValue('fancy')
-  fancy,
-  @JsonValue('vegetable')
-  vegetable,
+class AppSections {
+  static const String bakery = 'bakery';
+  static const String fancy = 'fancy';
+  static const String vegetable = 'vegetable';
+
+  static const List<String> values = [bakery, fancy, vegetable];
 }
 
 @freezed
@@ -33,9 +35,9 @@ class UserModel with _$UserModel {
     required String id,
     required String email,
     required String name,
-    required UserRole role,
-    UserSection? section,
-    String? createdBy, // For staff created by HR
+    required String role, // Changed from UserRole
+    String? section, // Changed from UserSection
+    String? createdBy,
     @Default(true) bool isActive,
   }) = _UserModel;
 

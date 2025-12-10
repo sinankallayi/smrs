@@ -36,7 +36,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               MaterialPageRoute(
                 builder: (_) => const UserManagementScreen(
                   title: 'Management Team',
-                  allowedRoles: [UserRole.hr, UserRole.exd, UserRole.md],
+                  allowedRoles: [AppRoles.hr, AppRoles.exd, AppRoles.md],
                 ),
               ),
             ),
@@ -49,7 +49,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               MaterialPageRoute(
                 builder: (_) => const UserManagementScreen(
                   title: 'Section Heads',
-                  allowedRoles: [UserRole.sectionHead],
+                  allowedRoles: [AppRoles.sectionHead],
                 ),
               ),
             ),

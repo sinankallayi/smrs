@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/user_model.dart';
 import '../../features/auth/auth_provider.dart';
+import '../../features/configuration/config_service.dart';
 
 class CreateUserDialog extends ConsumerStatefulWidget {
   final UserModel? userToEdit;
-  final List<UserRole>?
-  allowedRoles; // If null, allow all (except superAdmin maybe?)
+  final List<String>? allowedRoles;
 
   const CreateUserDialog({super.key, this.userToEdit, this.allowedRoles});
 
@@ -20,47 +20,32 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  late UserRole _selectedRole;
-  UserSection? _selectedSection;
+  String? _selectedRole;
+  String? _selectedSection;
   bool _isLoading = false;
   bool _isActive = true;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Determine initial role
     if (widget.userToEdit != null) {
-      _selectedRole = widget.userToEdit!.role;
-      _selectedSection = widget.userToEdit!.section;
       _nameController.text = widget.userToEdit!.name;
       _emailController.text = widget.userToEdit!.email;
       _isActive = widget.userToEdit!.isActive;
-    } else {
-      // Default to first allowed role or just staff
-      if (widget.allowedRoles != null && widget.allowedRoles!.isNotEmpty) {
-        _selectedRole = widget.allowedRoles!.first;
-      } else {
-        _selectedRole = UserRole.staff;
-      }
-
-      if (_selectedRole == UserRole.sectionHead) {
-        _selectedSection = UserSection.values.first;
-      }
+      _selectedRole = widget.userToEdit!.role;
+      _selectedSection = widget.userToEdit!.section;
+      _initialized = true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.userToEdit != null;
-
-    // Filter available roles
-    final availableRoles =
-        widget.allowedRoles ??
-        UserRole.values.where((r) => r != UserRole.superAdmin).toList();
+    final rolesAsync = ref.watch(rolesProvider);
+    final sectionsAsync = ref.watch(sectionsProvider);
 
     return AlertDialog(
-      title: Text(isEditing ? 'Edit User' : 'Create User'),
+      title: Text(widget.userToEdit != null ? 'Edit User' : 'Create User'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -76,9 +61,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
-                enabled: !isEditing,
+                enabled: widget.userToEdit == null,
               ),
-              if (!isEditing)
+              if (widget.userToEdit == null)
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(labelText: 'Password'),
@@ -87,60 +72,121 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                 ),
               const SizedBox(height: 16),
 
-              // Only show dropdown if there is more than one choice
-              if (availableRoles.length > 1)
-                DropdownButtonFormField<UserRole>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(labelText: 'Role'),
-                  items: availableRoles.map((r) {
-                    return DropdownMenuItem(
-                      value: r,
-                      child: Text(r.name.toUpperCase()),
+              // Roles Dropdown
+              rolesAsync.when(
+                data: (roles) {
+                  // Filter roles if allowedRoles is set
+                  final validRoles =
+                      widget.allowedRoles ??
+                      roles.where((r) => r != AppRoles.superAdmin).toList();
+
+                  if (validRoles.isEmpty)
+                    return const Text('No roles available');
+
+                  // Initialize selectedRole for new users if not set
+                  if (!_initialized &&
+                      _selectedRole == null &&
+                      validRoles.isNotEmpty) {
+                    _selectedRole = validRoles.contains(AppRoles.staff)
+                        ? AppRoles.staff
+                        : validRoles.first;
+                    // If creating new user, section logic will trigger on change or explicit check
+                  }
+
+                  // Handle case where editing user has a role not in current list (legacy/removed)
+                  // We add it temporarily to allowing editing other fields, or force change?
+                  // Better to show it.
+                  final displayRoles = [...validRoles];
+                  if (_selectedRole != null &&
+                      !displayRoles.contains(_selectedRole)) {
+                    displayRoles.add(_selectedRole!);
+                  }
+
+                  if (displayRoles.length > 1) {
+                    return DropdownButtonFormField<String>(
+                      value: _selectedRole,
+                      decoration: const InputDecoration(labelText: 'Role'),
+                      items: displayRoles
+                          .map(
+                            (r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r.toUpperCase()),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedRole = v;
+                          // Reset section if not section head (logic can be dynamic too but hardcoded for now based on requirement)
+                          // Ideally getting 'metadata' about roles from Firestore would be better (e.g. role 'staff' needs section)
+                          // For now, keeping legacy logic: Section Head needs section. Staff needs section (managed).
+                          // Wait, previously: SectionHead needed section. Staff needed section?
+                          // In UserManagementScreen logic: SectionHead -> select section.
+                        });
+                      },
+                      validator: (v) => v == null ? 'Required' : null,
                     );
-                  }).toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      _selectedRole = v!;
-                      if (_selectedRole != UserRole.sectionHead) {
-                        _selectedSection = null;
-                      } else if (_selectedSection == null) {
-                        _selectedSection = UserSection.values.first;
-                      }
-                    });
+                  } else if (displayRoles.isNotEmpty) {
+                    _selectedRole = displayRoles.first;
+                    return TextFormField(
+                      initialValue: _selectedRole!.toUpperCase(),
+                      decoration: const InputDecoration(
+                        labelText: 'Role',
+                        enabled: false,
+                      ),
+                      readOnly: true,
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+                error: (e, _) => Text('Error loading roles: $e'),
+                loading: () => const LinearProgressIndicator(),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Sections Dropdown
+              // Logic: Show section if role is sectionHead, or maybe staff needs it too?
+              // Previous logic: "if (_selectedRole == AppRoles.sectionHead)"
+              // User requirement: "manage roles and sections".
+              // We should allow picking section for any role potentially, or just SectionHead.
+              // Let's stick to existing logic: If role is 'sectionHead', show section.
+              // BUT: `LeaveFormScreen` check: `if (userDetails.section == null && userDetails.role == AppRoles.staff)`
+              // This implies Staff SHOULD have a section too.
+              // So let's allow Section selection for SectionHead AND Staff.
+              if (_selectedRole == AppRoles.sectionHead ||
+                  _selectedRole == AppRoles.staff)
+                sectionsAsync.when(
+                  data: (sections) {
+                    // Ensure selected section is valid
+
+                    return DropdownButtonFormField<String>(
+                      value: _selectedSection,
+                      decoration: const InputDecoration(labelText: 'Section'),
+                      items: sections
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.toUpperCase()),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedSection = v),
+                      validator: (v) {
+                        if ((_selectedRole == AppRoles.sectionHead ||
+                                _selectedRole == AppRoles.staff) &&
+                            v == null) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    );
                   },
-                )
-              else
-                // Read-only display if only one role is allowed
-                TextFormField(
-                  initialValue: _selectedRole.name.toUpperCase(),
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    enabled: false,
-                  ),
-                  readOnly: true,
+                  error: (e, _) => Text('Error loading sections: $e'),
+                  loading: () => const LinearProgressIndicator(),
                 ),
 
-              if (_selectedRole == UserRole.sectionHead)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<UserSection>(
-                    value: _selectedSection,
-                    decoration: const InputDecoration(labelText: 'Section'),
-                    items: UserSection.values.map((s) {
-                      return DropdownMenuItem(
-                        value: s,
-                        child: Text(s.name.toUpperCase()),
-                      );
-                    }).toList(),
-                    onChanged: (v) => setState(() => _selectedSection = v),
-                    validator: (v) =>
-                        _selectedRole == UserRole.sectionHead && v == null
-                        ? 'Required'
-                        : null,
-                  ),
-                ),
-
-              if (isEditing)
+              if (widget.userToEdit != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: SwitchListTile(
@@ -179,14 +225,13 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
 
     try {
       if (widget.userToEdit == null) {
-        // Create
         await ref
             .read(authControllerProvider.notifier)
             .createUser(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
               name: _nameController.text.trim(),
-              role: _selectedRole,
+              role: _selectedRole!,
               section: _selectedSection,
             );
       } else {
@@ -195,7 +240,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
             .updateUser(
               uid: widget.userToEdit!.id,
               name: _nameController.text.trim(),
-              role: _selectedRole,
+              role: _selectedRole!,
               section: _selectedSection,
               isActive: _isActive,
             );

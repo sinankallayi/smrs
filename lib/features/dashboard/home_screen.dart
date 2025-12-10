@@ -53,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              user.role.name.toUpperCase(),
+                              user.role.toUpperCase(),
                               style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
                                     color: Theme.of(
@@ -82,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Role Specific Content
-                  if (user.role == UserRole.staff) ...[
+                  if (user.role == AppRoles.staff) ...[
                     _buildSummaryCard(context, 'Leave Balance', '12 Days'),
                     const SizedBox(height: 12),
                     _buildSummaryCard(context, 'Pending Requests', '1'),

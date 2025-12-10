@@ -47,8 +47,8 @@ class AuthController extends _$AuthController {
     required String email,
     required String password,
     required String name,
-    required UserRole role,
-    UserSection? section,
+    required String role,
+    String? section,
   }) async {
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
@@ -71,8 +71,8 @@ class AuthController extends _$AuthController {
     required String email,
     required String password,
     required String name,
-    required UserRole role,
-    UserSection? section,
+    required String role,
+    String? section,
   }) async {
     // Connect to a secondary Firebase app to create user without logging out the admin
     FirebaseApp tempApp = await Firebase.initializeApp(
@@ -105,65 +105,17 @@ class AuthController extends _$AuthController {
   Future<void> updateUser({
     required String uid,
     String? name,
-    UserRole? role,
-    UserSection? section,
+    String? role,
+    String? section,
     bool? isActive,
   }) async {
     final Map<String, dynamic> data = {};
     if (name != null) data['name'] = name;
-    if (role != null)
-      data['role'] = role
-          .toString()
-          .split('.')
-          .last; // Enum to string? verification needed on how json_serializable handles it.
-    // Actually, simple update might overwrite if not careful with enum serialization.
-    // Better to read, update model, write back or just use field updates if we know the format.
-    // Since we use @JsonValue, we should probably check what the value maps to.
-    // However, for simplicity and safety against enum serialization nuances, let's just use the proper value.
-    // 'role': role (JsonValue handles this if we use toJson, but for update() we need raw value).
-    // Let's check UserModel.g.dart if possible, but standard is the string in @JsonValue.
-
-    // Manual mapping to be safe matching @JsonValue in user_model.dart
-    if (role != null) {
-      switch (role) {
-        case UserRole.superAdmin:
-          data['role'] = 'superAdmin';
-          break;
-        case UserRole.md:
-          data['role'] = 'md';
-          break;
-        case UserRole.exd:
-          data['role'] = 'exd';
-          break;
-        case UserRole.hr:
-          data['role'] = 'hr';
-          break;
-        case UserRole.sectionHead:
-          data['role'] = 'sectionHead';
-          break;
-        case UserRole.staff:
-          data['role'] = 'staff';
-          break;
-      }
-    }
-
+    if (role != null) data['role'] = role;
     if (section != null) {
-      switch (section) {
-        case UserSection.bakery:
-          data['section'] = 'bakery';
-          break;
-        case UserSection.fancy:
-          data['section'] = 'fancy';
-          break;
-        case UserSection.vegetable:
-          data['section'] = 'vegetable';
-          break;
-      }
-    } else if (role != UserRole.sectionHead && role != null) {
-      // If role changed to non-sectionHead, remove section?
-      // Firestore update doesn't support deleting a field easily with just a map unless using FieldValue.delete()
-      // But we can check if it is necessary. The prompt didn't explicitly say "clear section".
-      // But it's good practice.
+      data['section'] = section;
+    } else if (role != AppRoles.sectionHead && role != null) {
+      // If role changed to non-sectionHead, remove section
       data['section'] = FieldValue.delete();
     }
 

@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/auth/auth_provider.dart';
+
 import '../../shared/models/user_model.dart';
 import '../../features/admin/create_user_dialog.dart'; // Import reusable dialog
 
@@ -49,7 +48,7 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
                       '${user.name}${!user.isActive ? " (DISABLED)" : ""}',
                     ),
                     subtitle: Text(
-                      '${user.email}\nSection: ${user.section?.name ?? "None"}',
+                      '${user.email}\nSection: ${user.section ?? "None"}',
                     ),
                     isThreeLine: true,
                     trailing: Row(
@@ -85,7 +84,7 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
     showDialog(
       context: context,
       builder: (context) => const CreateUserDialog(
-        allowedRoles: [UserRole.staff], // Restrict to Staff only
+        allowedRoles: [AppRoles.staff], // Restrict to Staff only
       ),
     );
   }
@@ -95,7 +94,7 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
       context: context,
       builder: (context) => CreateUserDialog(
         userToEdit: user,
-        allowedRoles: const [UserRole.staff],
+        allowedRoles: const [AppRoles.staff],
       ),
     );
   }

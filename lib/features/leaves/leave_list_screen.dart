@@ -15,7 +15,7 @@ class LeaveListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (user.role == UserRole.sectionHead) {
+    if (user.role == AppRoles.sectionHead) {
       return DefaultTabController(
         length: 3,
         child: SafeArea(
@@ -50,9 +50,9 @@ class LeaveListScreen extends ConsumerWidget {
           ),
         ),
       );
-    } else if (user.role == UserRole.md ||
-        user.role == UserRole.exd ||
-        user.role == UserRole.hr) {
+    } else if (user.role == AppRoles.md ||
+        user.role == AppRoles.exd ||
+        user.role == AppRoles.hr) {
       // Management View
       return DefaultTabController(
         length: 2,
@@ -136,7 +136,7 @@ class _LeaveCard extends ConsumerWidget {
 
   Color _getStatusColor(BuildContext context, LeaveStatus status) {
     // Mask 'Management Approved' as Pending (Orange) for Staff
-    if (currentUser.role == UserRole.staff &&
+    if (currentUser.role == AppRoles.staff &&
         status == LeaveStatus.managementApproved) {
       return Colors.orange;
     }
@@ -215,7 +215,7 @@ class _LeaveCard extends ConsumerWidget {
 
           // Action History - Hidden for Staff
           if (leave.timeline.isNotEmpty &&
-              currentUser.role != UserRole.staff) ...[
+              currentUser.role != AppRoles.staff) ...[
             const Divider(height: 24),
             const Text(
               'Action History',
@@ -303,7 +303,7 @@ class _LeaveCard extends ConsumerWidget {
           ],
 
           // STAFF ONLY: Show Section Head Remark if available
-          if (currentUser.role == UserRole.staff) ...[
+          if (currentUser.role == AppRoles.staff) ...[
             Builder(
               builder: (context) {
                 // Find the latest remark from a Section Head that is NOT a 'Forward' action
@@ -370,7 +370,7 @@ class _LeaveCard extends ConsumerWidget {
     Color statusColor = _getStatusColor(context, leave.status);
 
     // MASKING for Staff: Show "PENDING" instead of "MANAGEMENT APPROVED"
-    if (currentUser.role == UserRole.staff &&
+    if (currentUser.role == AppRoles.staff &&
         leave.status == LeaveStatus.managementApproved) {
       statusText = 'PENDING';
       // statusColor is already handled by _getStatusColor
@@ -396,12 +396,12 @@ class _LeaveCard extends ConsumerWidget {
 
   bool _canAct() {
     // Section Head Actions
-    if (currentUser.role == UserRole.sectionHead) {
+    if (currentUser.role == AppRoles.sectionHead) {
       return leave.currentStage == LeaveStage.sectionHeadReview ||
           leave.currentStage == LeaveStage.finalization;
     }
     // Management Actions
-    if ([UserRole.md, UserRole.exd, UserRole.hr].contains(currentUser.role)) {
+    if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(currentUser.role)) {
       return leave.currentStage == LeaveStage.managementReview;
     }
     return false;
@@ -411,7 +411,7 @@ class _LeaveCard extends ConsumerWidget {
     List<Widget> buttons = [];
     final scheme = Theme.of(context).colorScheme;
 
-    if (currentUser.role == UserRole.sectionHead) {
+    if (currentUser.role == AppRoles.sectionHead) {
       if (leave.currentStage == LeaveStage.sectionHeadReview) {
         buttons = [
           _actionBtn(
@@ -478,9 +478,9 @@ class _LeaveCard extends ConsumerWidget {
         ];
       }
     } else if ([
-      UserRole.md,
-      UserRole.exd,
-      UserRole.hr,
+      AppRoles.md,
+      AppRoles.exd,
+      AppRoles.hr,
     ].contains(currentUser.role)) {
       buttons = [
         _actionBtn(

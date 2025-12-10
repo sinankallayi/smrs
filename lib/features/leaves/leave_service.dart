@@ -16,15 +16,15 @@ class LeaveService extends _$LeaveService {
   Stream<List<LeaveRequestModel>> getLeaves(UserModel user) {
     Query<Map<String, dynamic>> query = _leavesColl;
 
-    if (user.role == UserRole.staff) {
+    if (user.role == AppRoles.staff) {
       query = query.where('userId', isEqualTo: user.id);
-    } else if (user.role == UserRole.sectionHead) {
+    } else if (user.role == AppRoles.sectionHead) {
       // Section Head: Leaves from their section
       if (user.section != null) {
         // Enforce Firestore Rule: resource.data.userSection == user.section
-        query = query.where('userSection', isEqualTo: user.section!.name);
+        query = query.where('userSection', isEqualTo: user.section);
       }
-    } else if ([UserRole.md, UserRole.exd, UserRole.hr].contains(user.role)) {
+    } else if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(user.role)) {
       // Management: Fetch ALL requests to support History view.
       // Client-side filtering will separate 'Pending' from 'History'.
       // query = query.where('currentStage', isEqualTo: 'management_review');
@@ -38,7 +38,7 @@ class LeaveService extends _$LeaveService {
           .toList();
 
       // Additional In-Memory Filtering for Security/View Logic
-      if (user.role == UserRole.sectionHead) {
+      if (user.role == AppRoles.sectionHead) {
         return leaves.where((l) => l.userSection == user.section).toList();
       }
       return leaves;
@@ -96,7 +96,7 @@ class LeaveService extends _$LeaveService {
     final timelineEntry = TimelineEntry(
       byUserId: actor.id,
       byUserName: actor.name,
-      byUserRole: actor.role.name,
+      byUserRole: actor.role,
       status: action.name,
       remark: remark,
       date: DateTime.now(),

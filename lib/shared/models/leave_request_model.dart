@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../models/user_model.dart';
+import 'user_model.dart';
 
 part 'leave_request_model.freezed.dart';
 part 'leave_request_model.g.dart';
@@ -61,8 +61,8 @@ class LeaveRequestModel with _$LeaveRequestModel {
     required String id,
     required String userId,
     required String userName,
-    required UserRole userRole,
-    required UserSection userSection,
+    required String userRole,
+    String? userSection,
     @TimestampConverter() required DateTime startDate,
     @TimestampConverter() required DateTime endDate,
     required String reason,

@@ -32,8 +32,8 @@ _$LeaveRequestModelImpl _$$LeaveRequestModelImplFromJson(
   id: json['id'] as String,
   userId: json['userId'] as String,
   userName: json['userName'] as String,
-  userRole: $enumDecode(_$UserRoleEnumMap, json['userRole']),
-  userSection: $enumDecode(_$UserSectionEnumMap, json['userSection']),
+  userRole: json['userRole'] as String,
+  userSection: json['userSection'] as String?,
   startDate: const TimestampConverter().fromJson(
     json['startDate'] as Timestamp,
   ),
@@ -58,8 +58,8 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'id': instance.id,
   'userId': instance.userId,
   'userName': instance.userName,
-  'userRole': _$UserRoleEnumMap[instance.userRole]!,
-  'userSection': _$UserSectionEnumMap[instance.userSection]!,
+  'userRole': instance.userRole,
+  'userSection': instance.userSection,
   'startDate': const TimestampConverter().toJson(instance.startDate),
   'endDate': const TimestampConverter().toJson(instance.endDate),
   'reason': instance.reason,
@@ -68,20 +68,6 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'appliedAt': const TimestampConverter().toJson(instance.appliedAt),
   'timeline': instance.timeline,
   'isActive': instance.isActive,
-};
-
-const _$UserRoleEnumMap = {
-  UserRole.md: 'md',
-  UserRole.exd: 'exd',
-  UserRole.hr: 'hr',
-  UserRole.sectionHead: 'sectionHead',
-  UserRole.staff: 'staff',
-};
-
-const _$UserSectionEnumMap = {
-  UserSection.bakery: 'bakery',
-  UserSection.fancy: 'fancy',
-  UserSection.vegetable: 'vegetable',
 };
 
 const _$LeaveStatusEnumMap = {

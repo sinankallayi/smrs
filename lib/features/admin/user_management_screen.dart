@@ -6,7 +6,7 @@ import 'create_user_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserManagementScreen extends ConsumerStatefulWidget {
-  final List<UserRole>? allowedRoles;
+  final List<String>? allowedRoles;
   final String title;
 
   const UserManagementScreen({
@@ -66,7 +66,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       );
                     })
                     // Filter out superAdmin
-                    .where((user) => user.role != UserRole.superAdmin)
+                    .where((user) => user.role != AppRoles.superAdmin)
                     // Filter by allowed roles if provided
                     .where((user) {
                       if (widget.allowedRoles == null) return true;
@@ -76,7 +76,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       final matches =
                           user.name.toLowerCase().contains(_searchQuery) ||
                           user.email.toLowerCase().contains(_searchQuery) ||
-                          user.role.name.toLowerCase().contains(_searchQuery);
+                          user.role.toLowerCase().contains(_searchQuery);
                       return matches;
                     })
                     .toList();
@@ -95,7 +95,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       ),
                       title: Text(user.name),
                       subtitle: Text(
-                        '${user.email} • ${user.role.name.toUpperCase()}',
+                        '${user.email} • ${user.role.toUpperCase()}',
                       ),
                       trailing: IconButton(
                         icon: const Icon(LucideIcons.trash2, color: Colors.red),

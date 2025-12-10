@@ -8,7 +8,8 @@ import '../../features/settings/settings_screen.dart';
 import 'home_screen.dart';
 import 'manage_staff_screen.dart';
 import '../../features/leaves/leave_form_screen.dart';
-import '../admin/admin_dashboard_screen.dart';
+
+import '../admin/super_admin_home_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -34,8 +35,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         }
 
-        if (user.role == UserRole.superAdmin) {
-          return const AdminDashboardScreen();
+        if (user.role == AppRoles.superAdmin) {
+          return const SuperAdminHomeScreen();
         }
 
         List<Widget> pages = [
@@ -64,7 +65,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ];
 
-        if (user.role == UserRole.hr) {
+        if (user.role == AppRoles.hr) {
           pages.insert(3, const ManageStaffScreen());
           destinations.insert(
             3,
@@ -98,7 +99,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
           floatingActionButton:
-              (_selectedIndex == 1 && user.role == UserRole.staff)
+              (_selectedIndex == 1 && user.role == AppRoles.staff)
               ? FloatingActionButton(
                   onPressed: () {
                     Navigator.push(

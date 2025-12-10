@@ -6,7 +6,7 @@ part of 'leave_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$leaveServiceHash() => r'a64cb03e096c572d17bcfa73524286cada90e38c';
+String _$leaveServiceHash() => r'bf667850dcc4d9da339be1cbc3ad230c2e5af0a0';
 
 /// See also [LeaveService].
 @ProviderFor(LeaveService)

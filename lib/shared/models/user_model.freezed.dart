@@ -24,10 +24,11 @@ mixin _$UserModel {
   String get id => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  UserRole get role => throw _privateConstructorUsedError;
-  UserSection? get section => throw _privateConstructorUsedError;
-  String? get createdBy =>
-      throw _privateConstructorUsedError; // For staff created by HR
+  String get role =>
+      throw _privateConstructorUsedError; // Changed from UserRole
+  String? get section =>
+      throw _privateConstructorUsedError; // Changed from UserSection
+  String? get createdBy => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
 
   /// Serializes this UserModel to a JSON map.
@@ -49,8 +50,8 @@ abstract class $UserModelCopyWith<$Res> {
     String id,
     String email,
     String name,
-    UserRole role,
-    UserSection? section,
+    String role,
+    String? section,
     String? createdBy,
     bool isActive,
   });
@@ -96,11 +97,11 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
             role: null == role
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
-                      as UserRole,
+                      as String,
             section: freezed == section
                 ? _value.section
                 : section // ignore: cast_nullable_to_non_nullable
-                      as UserSection?,
+                      as String?,
             createdBy: freezed == createdBy
                 ? _value.createdBy
                 : createdBy // ignore: cast_nullable_to_non_nullable
@@ -128,8 +129,8 @@ abstract class _$$UserModelImplCopyWith<$Res>
     String id,
     String email,
     String name,
-    UserRole role,
-    UserSection? section,
+    String role,
+    String? section,
     String? createdBy,
     bool isActive,
   });
@@ -174,11 +175,11 @@ class __$$UserModelImplCopyWithImpl<$Res>
         role: null == role
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
-                  as UserRole,
+                  as String,
         section: freezed == section
             ? _value.section
             : section // ignore: cast_nullable_to_non_nullable
-                  as UserSection?,
+                  as String?,
         createdBy: freezed == createdBy
             ? _value.createdBy
             : createdBy // ignore: cast_nullable_to_non_nullable
@@ -215,12 +216,13 @@ class _$UserModelImpl implements _UserModel {
   @override
   final String name;
   @override
-  final UserRole role;
+  final String role;
+  // Changed from UserRole
   @override
-  final UserSection? section;
+  final String? section;
+  // Changed from UserSection
   @override
   final String? createdBy;
-  // For staff created by HR
   @override
   @JsonKey()
   final bool isActive;
@@ -278,8 +280,8 @@ abstract class _UserModel implements UserModel {
     required final String id,
     required final String email,
     required final String name,
-    required final UserRole role,
-    final UserSection? section,
+    required final String role,
+    final String? section,
     final String? createdBy,
     final bool isActive,
   }) = _$UserModelImpl;
@@ -294,11 +296,11 @@ abstract class _UserModel implements UserModel {
   @override
   String get name;
   @override
-  UserRole get role;
+  String get role; // Changed from UserRole
   @override
-  UserSection? get section;
+  String? get section; // Changed from UserSection
   @override
-  String? get createdBy; // For staff created by HR
+  String? get createdBy;
   @override
   bool get isActive;
 

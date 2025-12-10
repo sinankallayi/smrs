@@ -42,7 +42,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       if (userDetails == null) throw Exception('User not found');
 
       // Ensure user has a section (Section Head needs to know where to route)
-      if (userDetails.section == null && userDetails.role == UserRole.staff) {
+      if (userDetails.section == null && userDetails.role == AppRoles.staff) {
         throw Exception('User has no section assigned');
       }
 
@@ -51,9 +51,8 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
         userId: userDetails.id,
         userName: userDetails.name,
         userRole: userDetails.role,
-        userSection:
-            userDetails.section ??
-            UserSection.bakery, // Fallback if managed user
+        userSection: userDetails
+            .section, // Fallback handled by nullable type or validation
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
