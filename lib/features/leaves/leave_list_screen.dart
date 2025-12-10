@@ -87,43 +87,159 @@ class LeaveListScreen extends ConsumerWidget {
   }
 }
 
-class _LeaveList extends ConsumerWidget {
+class _LeaveList extends ConsumerStatefulWidget {
   final UserModel user;
   final LeaveStage? filterStage;
 
   const _LeaveList({required this.user, this.filterStage});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return StreamBuilder<List<LeaveRequestModel>>(
-      stream: ref.watch(leaveServiceProvider.notifier).getLeaves(user),
-      builder: (context, snapshot) {
-        if (snapshot.hasError)
-          return Center(child: Text('Error: ${snapshot.error}'));
-        if (!snapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
+  ConsumerState<_LeaveList> createState() => _LeaveListState();
+}
 
-        var leaves = snapshot.data!;
+class _LeaveListState extends ConsumerState<_LeaveList> {
+  DateTime? _startDate;
+  DateTime? _endDate;
+  LeaveStatus? _statusFilter;
 
-        // Filter if stage is specified, otherwise show all (History)
-        if (filterStage != null) {
-          leaves = leaves.where((l) => l.currentStage == filterStage).toList();
-        }
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Filter UI (Only for History view or if needed)
+        // We show it if filterStage is null (History) and user is Management
+        if (widget.filterStage == null &&
+            [AppRoles.md, AppRoles.exd, AppRoles.hr].contains(widget.user.role))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2023),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDateRange: _startDate != null && _endDate != null
+                            ? DateTimeRange(start: _startDate!, end: _endDate!)
+                            : null,
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _startDate = picked.start;
+                          _endDate = picked.end;
+                        });
+                      }
+                    },
+                    icon: const Icon(LucideIcons.calendar),
+                    label: Text(
+                      _startDate != null && _endDate != null
+                          ? '${DateFormat('MMM dd').format(_startDate!)} - ${DateFormat('MMM dd').format(_endDate!)}'
+                          : 'Date Range',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  DropdownButton<LeaveStatus?>(
+                    value: _statusFilter,
+                    hint: const Text('Status'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('All')),
+                      ...LeaveStatus.values.map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(
+                            s.name.toUpperCase().replaceAll('_', ' '),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) => setState(() => _statusFilter = val),
+                    underline: Container(), // Remove default underline
+                  ),
+                  if (_startDate != null || _statusFilter != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(LucideIcons.xCircle, size: 20),
+                      onPressed: () {
+                        setState(() {
+                          _startDate = null;
+                          _endDate = null;
+                          _statusFilter = null;
+                        });
+                      },
+                      tooltip: 'Clear Filters',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
 
-        // Sort by date descending (newest first)
-        leaves.sort((a, b) => b.appliedAt.compareTo(a.appliedAt));
+        Expanded(
+          child: StreamBuilder<List<LeaveRequestModel>>(
+            stream: ref
+                .watch(leaveServiceProvider.notifier)
+                .getLeaves(widget.user),
+            builder: (context, snapshot) {
+              if (snapshot.hasError)
+                return Center(child: Text('Error: ${snapshot.error}'));
+              if (!snapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
 
-        if (leaves.isEmpty)
-          return const Center(child: Text('No requests found.'));
+              var leaves = snapshot.data!;
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: leaves.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) =>
-              _LeaveCard(leave: leaves[index], currentUser: user),
-        );
-      },
+              // 1. Stage Filter
+              if (widget.filterStage != null) {
+                leaves = leaves
+                    .where((l) => l.currentStage == widget.filterStage)
+                    .toList();
+              }
+
+              // 2. Status Filter
+              if (_statusFilter != null) {
+                leaves = leaves
+                    .where((l) => l.status == _statusFilter)
+                    .toList();
+              }
+
+              // 3. Date Range Filter (Overlap Logic)
+              if (_startDate != null && _endDate != null) {
+                // Filter leaves that overlap with the selected range
+                // Leave Start <= Range End AND Leave End >= Range Start
+                // We user _endDate! + 1 day mostly to include the full end day if times are mismatched,
+                // but usually DateRangePicker returns midnight.
+                // Let's stick to standard overlap:
+                final rangeStart = _startDate!;
+                final rangeEnd = _endDate!
+                    .add(const Duration(days: 1))
+                    .subtract(const Duration(seconds: 1)); // End of the day
+
+                leaves = leaves.where((l) {
+                  return l.startDate.isBefore(rangeEnd) &&
+                      l.endDate.isAfter(rangeStart);
+                }).toList();
+              }
+
+              // Sort by date descending (newest first)
+              leaves.sort((a, b) => b.appliedAt.compareTo(a.appliedAt));
+
+              if (leaves.isEmpty)
+                return const Center(child: Text('No requests found.'));
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: leaves.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) =>
+                    _LeaveCard(leave: leaves[index], currentUser: widget.user),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
