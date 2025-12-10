@@ -46,6 +46,7 @@ class TimelineEntry with _$TimelineEntry {
     required String byUserId,
     required String byUserName,
     required String byUserRole,
+    String? byUserSection, // Added to show specific section for Section Heads
     required String status, // String representation of action taken
     required String remark,
     @TimestampConverter() required DateTime date,

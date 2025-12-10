@@ -97,6 +97,7 @@ class LeaveService extends _$LeaveService {
       byUserId: actor.id,
       byUserName: actor.name,
       byUserRole: actor.role,
+      byUserSection: actor.section,
       status: action.name,
       remark: remark,
       date: DateTime.now(),

@@ -24,6 +24,8 @@ mixin _$TimelineEntry {
   String get byUserId => throw _privateConstructorUsedError;
   String get byUserName => throw _privateConstructorUsedError;
   String get byUserRole => throw _privateConstructorUsedError;
+  String? get byUserSection =>
+      throw _privateConstructorUsedError; // Added to show specific section for Section Heads
   String get status =>
       throw _privateConstructorUsedError; // String representation of action taken
   String get remark => throw _privateConstructorUsedError;
@@ -51,6 +53,7 @@ abstract class $TimelineEntryCopyWith<$Res> {
     String byUserId,
     String byUserName,
     String byUserRole,
+    String? byUserSection,
     String status,
     String remark,
     @TimestampConverter() DateTime date,
@@ -75,6 +78,7 @@ class _$TimelineEntryCopyWithImpl<$Res, $Val extends TimelineEntry>
     Object? byUserId = null,
     Object? byUserName = null,
     Object? byUserRole = null,
+    Object? byUserSection = freezed,
     Object? status = null,
     Object? remark = null,
     Object? date = null,
@@ -93,6 +97,10 @@ class _$TimelineEntryCopyWithImpl<$Res, $Val extends TimelineEntry>
                 ? _value.byUserRole
                 : byUserRole // ignore: cast_nullable_to_non_nullable
                       as String,
+            byUserSection: freezed == byUserSection
+                ? _value.byUserSection
+                : byUserSection // ignore: cast_nullable_to_non_nullable
+                      as String?,
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
@@ -124,6 +132,7 @@ abstract class _$$TimelineEntryImplCopyWith<$Res>
     String byUserId,
     String byUserName,
     String byUserRole,
+    String? byUserSection,
     String status,
     String remark,
     @TimestampConverter() DateTime date,
@@ -147,6 +156,7 @@ class __$$TimelineEntryImplCopyWithImpl<$Res>
     Object? byUserId = null,
     Object? byUserName = null,
     Object? byUserRole = null,
+    Object? byUserSection = freezed,
     Object? status = null,
     Object? remark = null,
     Object? date = null,
@@ -165,6 +175,10 @@ class __$$TimelineEntryImplCopyWithImpl<$Res>
             ? _value.byUserRole
             : byUserRole // ignore: cast_nullable_to_non_nullable
                   as String,
+        byUserSection: freezed == byUserSection
+            ? _value.byUserSection
+            : byUserSection // ignore: cast_nullable_to_non_nullable
+                  as String?,
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
@@ -189,6 +203,7 @@ class _$TimelineEntryImpl implements _TimelineEntry {
     required this.byUserId,
     required this.byUserName,
     required this.byUserRole,
+    this.byUserSection,
     required this.status,
     required this.remark,
     @TimestampConverter() required this.date,
@@ -204,6 +219,9 @@ class _$TimelineEntryImpl implements _TimelineEntry {
   @override
   final String byUserRole;
   @override
+  final String? byUserSection;
+  // Added to show specific section for Section Heads
+  @override
   final String status;
   // String representation of action taken
   @override
@@ -214,7 +232,7 @@ class _$TimelineEntryImpl implements _TimelineEntry {
 
   @override
   String toString() {
-    return 'TimelineEntry(byUserId: $byUserId, byUserName: $byUserName, byUserRole: $byUserRole, status: $status, remark: $remark, date: $date)';
+    return 'TimelineEntry(byUserId: $byUserId, byUserName: $byUserName, byUserRole: $byUserRole, byUserSection: $byUserSection, status: $status, remark: $remark, date: $date)';
   }
 
   @override
@@ -228,6 +246,8 @@ class _$TimelineEntryImpl implements _TimelineEntry {
                 other.byUserName == byUserName) &&
             (identical(other.byUserRole, byUserRole) ||
                 other.byUserRole == byUserRole) &&
+            (identical(other.byUserSection, byUserSection) ||
+                other.byUserSection == byUserSection) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.remark, remark) || other.remark == remark) &&
             (identical(other.date, date) || other.date == date));
@@ -240,6 +260,7 @@ class _$TimelineEntryImpl implements _TimelineEntry {
     byUserId,
     byUserName,
     byUserRole,
+    byUserSection,
     status,
     remark,
     date,
@@ -264,6 +285,7 @@ abstract class _TimelineEntry implements TimelineEntry {
     required final String byUserId,
     required final String byUserName,
     required final String byUserRole,
+    final String? byUserSection,
     required final String status,
     required final String remark,
     @TimestampConverter() required final DateTime date,
@@ -278,6 +300,8 @@ abstract class _TimelineEntry implements TimelineEntry {
   String get byUserName;
   @override
   String get byUserRole;
+  @override
+  String? get byUserSection; // Added to show specific section for Section Heads
   @override
   String get status; // String representation of action taken
   @override
