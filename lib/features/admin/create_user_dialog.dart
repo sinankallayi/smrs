@@ -128,14 +128,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                     );
                   } else if (displayRoles.isNotEmpty) {
                     _selectedRole = displayRoles.first;
-                    return TextFormField(
-                      initialValue: _selectedRole!.toUpperCase(),
-                      decoration: const InputDecoration(
-                        labelText: 'Role',
-                        enabled: false,
-                      ),
-                      readOnly: true,
-                    );
+                    return const SizedBox.shrink();
                   }
                   return const SizedBox.shrink();
                 },

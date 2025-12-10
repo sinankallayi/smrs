@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'admin_dashboard_screen.dart';
 import 'controller_screen.dart';
+import '../../features/settings/settings_screen.dart';
 
 class SuperAdminHomeScreen extends ConsumerStatefulWidget {
   const SuperAdminHomeScreen({super.key});
@@ -18,6 +19,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
   final List<Widget> _pages = const [
     AdminDashboardScreen(),
     ControllerScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -39,6 +41,10 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
           NavigationDestination(
             icon: Icon(LucideIcons.gamepad2),
             label: 'Controller',
+          ),
+          NavigationDestination(
+            icon: Icon(LucideIcons.settings),
+            label: 'Settings',
           ),
         ],
       ),
