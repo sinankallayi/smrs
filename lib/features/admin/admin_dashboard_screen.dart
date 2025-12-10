@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../shared/models/user_model.dart';
+import '../../features/configuration/config_service.dart';
 
 import 'user_management_screen.dart';
 
@@ -11,24 +12,44 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final rolesAsync = ref.watch(rolesProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
       body: GridView.count(
         crossAxisCount: 2,
         padding: const EdgeInsets.all(16),
         children: [
-          _AdminCard(
-            icon: LucideIcons.briefcase,
-            title: 'Management\n(HR/ExD/MD)',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const UserManagementScreen(
-                  title: 'Management Team',
-                  allowedRoles: [AppRoles.hr, AppRoles.exd, AppRoles.md],
+          rolesAsync.when(
+            data: (roles) {
+              // Filter out system roles to get Management roles
+              final managementRoles = roles
+                  .where(
+                    (r) =>
+                        r != AppRoles.superAdmin &&
+                        r != AppRoles.sectionHead &&
+                        r != AppRoles.staff,
+                  )
+                  .toList();
+              // Ensure core management roles are always present if not deleted
+              // (This might be redundant if Firestore is the source of truth, but good for safety)
+
+              return _AdminCard(
+                icon: LucideIcons.briefcase,
+                title: 'Management',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => UserManagementScreen(
+                      title: 'Management Team',
+                      allowedRoles: managementRoles,
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error: $e')),
           ),
           _AdminCard(
             icon: LucideIcons.store,
