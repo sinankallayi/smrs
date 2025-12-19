@@ -10,6 +10,7 @@ import 'manage_staff_screen.dart';
 import '../../features/leaves/leave_form_screen.dart';
 
 import '../admin/super_admin_home_screen.dart';
+import '../../shared/widgets/glass_nav_bar.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -76,24 +77,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Scaffold(
           extendBody: true,
           body: IndexedStack(index: _selectedIndex, children: pages),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.2)),
-              ),
-            ),
-            child: NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (idx) =>
-                  setState(() => _selectedIndex = idx),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              indicatorColor: Theme.of(
-                context,
-              ).colorScheme.primary.withOpacity(0.2),
-              destinations: destinations,
-            ),
+          bottomNavigationBar: GlassNavBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (idx) =>
+                setState(() => _selectedIndex = idx),
+            destinations: destinations,
           ),
           floatingActionButton:
               (_selectedIndex == 1 && user.role == AppRoles.staff)

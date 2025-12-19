@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/user_model.dart';
 import '../../shared/widgets/glass_container.dart';
+import '../../shared/utils/string_extensions.dart';
+import '../../shared/models/leave_request_model.dart';
+import '../leaves/leave_service.dart';
 
 class HomeScreen extends ConsumerWidget {
   final UserModel user;
@@ -18,12 +21,12 @@ class HomeScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withOpacity(0.5),
-                  Theme.of(
-                    context,
-                  ).colorScheme.tertiaryContainer.withOpacity(0.5),
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[900]!
+                      : Colors.grey[50]!,
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -44,11 +47,11 @@ class HomeScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome back,',
+                              'Welcome back,'.toTitleCase(),
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                             Text(
-                              user.name,
+                              user.name.toTitleCase(),
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
@@ -82,15 +85,136 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Role Specific Content
-                  if (user.role == AppRoles.staff) ...[
-                    _buildSummaryCard(context, 'Leave Balance', '12 Days'),
-                    const SizedBox(height: 12),
-                    _buildSummaryCard(context, 'Pending Requests', '1'),
-                  ] else ...[
-                    _buildSummaryCard(context, 'Pending Approvals', '5'),
-                    const SizedBox(height: 12),
-                    _buildSummaryCard(context, 'Staff On Leave', '3'),
-                  ],
+                  StreamBuilder<List<LeaveRequestModel>>(
+                    stream: ref
+                        .watch(leaveServiceProvider.notifier)
+                        .getLeaves(user),
+                    builder: (context, snapshot) {
+                      final leaves = snapshot.data ?? [];
+                      int pendingCount = 0;
+                      int forwardedCount = 0;
+
+                      if (user.role == AppRoles.staff) {
+                        // Staff Logic
+                        pendingCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage ==
+                                  LeaveStage.sectionHeadReview,
+                            )
+                            .length;
+                        forwardedCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage == LeaveStage.managementReview,
+                            )
+                            .length;
+
+                        return Column(
+                          children: [
+                            _buildSummaryCard(
+                              context,
+                              'Leave Balance'.toTitleCase(),
+                              '12 Days'.toTitleCase(),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'Pending Requests'.toTitleCase(),
+                                    '$pendingCount',
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'Forwarded Requests'.toTitleCase(),
+                                    '$forwardedCount',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      } else if (user.role == AppRoles.sectionHead) {
+                        // Section Head Logic
+                        pendingCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage ==
+                                  LeaveStage.sectionHeadReview,
+                            )
+                            .length;
+                        forwardedCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage == LeaveStage.managementReview,
+                            )
+                            .length;
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _buildSummaryCard(
+                                context,
+                                'Pending Requests'.toTitleCase(),
+                                '$pendingCount',
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildSummaryCard(
+                                context,
+                                'Forwarded Leaves'.toTitleCase(),
+                                '$forwardedCount',
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        // Management Logic
+                        // pending = Total Inbox (All waiting for review)
+                        pendingCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage == LeaveStage.managementReview,
+                            )
+                            .length;
+                        // forwarded = Subset from Section Heads
+                        forwardedCount = leaves
+                            .where(
+                              (l) =>
+                                  l.currentStage ==
+                                      LeaveStage.managementReview &&
+                                  l.status == LeaveStatus.sectionHeadForwarded,
+                            )
+                            .length;
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _buildSummaryCard(
+                                context,
+                                'Pending Requests'.toTitleCase(),
+                                '$pendingCount',
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildSummaryCard(
+                                context,
+                                'Forwarded Leaves'.toTitleCase(),
+                                '$forwardedCount',
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

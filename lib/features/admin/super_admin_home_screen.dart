@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'admin_dashboard_screen.dart';
 import 'controller_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../shared/widgets/glass_nav_bar.dart';
 
 class SuperAdminHomeScreen extends ConsumerStatefulWidget {
   const SuperAdminHomeScreen({super.key});
@@ -25,8 +26,9 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: GlassNavBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           setState(() {
