@@ -33,15 +33,15 @@ class LeaveListScreen extends ConsumerWidget {
                   children: [
                     _LeaveList(
                       user: user,
-                      filterStage: LeaveStage.sectionHeadReview,
+                      filterStages: const [LeaveStage.sectionHeadReview],
                     ),
                     _LeaveList(
                       user: user,
-                      filterStage: LeaveStage.finalization,
+                      filterStages: const [LeaveStage.finalization],
                     ),
                     _LeaveList(
                       user: user,
-                      filterStage: null, // Shows all/history
+                      filterStages: null, // Shows all/history
                     ),
                   ],
                 ),
@@ -50,9 +50,7 @@ class LeaveListScreen extends ConsumerWidget {
           ),
         ),
       );
-    } else if (user.role == AppRoles.md ||
-        user.role == AppRoles.exd ||
-        user.role == AppRoles.hr) {
+    } else if (user.role != AppRoles.staff) {
       // Management View
       return DefaultTabController(
         length: 2,
@@ -70,9 +68,14 @@ class LeaveListScreen extends ConsumerWidget {
                   children: [
                     _LeaveList(
                       user: user,
-                      filterStage: LeaveStage.managementReview,
+                      // Show both Management Review AND Section Head Review
+                      // so Management can intervene if needed.
+                      filterStages: const [
+                        LeaveStage.managementReview,
+                        LeaveStage.sectionHeadReview,
+                      ],
                     ),
-                    _LeaveList(user: user, filterStage: null), // History
+                    _LeaveList(user: user, filterStages: null), // History
                   ],
                 ),
               ),
@@ -89,9 +92,9 @@ class LeaveListScreen extends ConsumerWidget {
 
 class _LeaveList extends ConsumerStatefulWidget {
   final UserModel user;
-  final LeaveStage? filterStage;
+  final List<LeaveStage>? filterStages;
 
-  const _LeaveList({required this.user, this.filterStage});
+  const _LeaveList({required this.user, this.filterStages});
 
   @override
   ConsumerState<_LeaveList> createState() => _LeaveListState();
@@ -107,9 +110,8 @@ class _LeaveListState extends ConsumerState<_LeaveList> {
     return Column(
       children: [
         // Filter UI (Only for History view or if needed)
-        // We show it if filterStage is null (History) and user is Management
-        if (widget.filterStage == null &&
-            [AppRoles.md, AppRoles.exd, AppRoles.hr].contains(widget.user.role))
+        if (widget.filterStages == null &&
+            ![AppRoles.staff, AppRoles.sectionHead].contains(widget.user.role))
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: SingleChildScrollView(
@@ -192,9 +194,9 @@ class _LeaveListState extends ConsumerState<_LeaveList> {
               var leaves = snapshot.data!;
 
               // 1. Stage Filter
-              if (widget.filterStage != null) {
+              if (widget.filterStages != null) {
                 leaves = leaves
-                    .where((l) => l.currentStage == widget.filterStage)
+                    .where((l) => widget.filterStages!.contains(l.currentStage))
                     .toList();
               }
 
@@ -251,21 +253,20 @@ class _LeaveCard extends ConsumerWidget {
   const _LeaveCard({required this.leave, required this.currentUser});
 
   Color _getStatusColor(BuildContext context, LeaveStatus status) {
-    // Mask 'Management Approved' as Pending (Orange) for Staff
-    if (currentUser.role == AppRoles.staff &&
-        status == LeaveStatus.managementApproved) {
-      return Colors.orange;
-    }
-
+    // Masking REMOVED to show full transparency
     final scheme = Theme.of(context).colorScheme;
 
     switch (status) {
       case LeaveStatus.pending:
         return Colors.orange;
       case LeaveStatus.forwarded:
+      case LeaveStatus.sectionHeadForwarded:
         return scheme.primary;
-      case LeaveStatus.managementApproved:
+      case LeaveStatus.managersApproved:
+      case LeaveStatus.managementApprovedLegacy:
         return Colors.purple;
+      case LeaveStatus.managementApproved:
+        return Colors.indigo;
       case LeaveStatus.approved:
         return Colors.green;
       case LeaveStatus.rejected:
@@ -329,9 +330,8 @@ class _LeaveCard extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(leave.reason, style: TextStyle(color: Colors.grey[600])),
 
-          // Action History - Hidden for Staff
-          if (leave.timeline.isNotEmpty &&
-              currentUser.role != AppRoles.staff) ...[
+          // Action History - Visible to ALL
+          if (leave.timeline.isNotEmpty) ...[
             const Divider(height: 24),
             const Text(
               'Action History',
@@ -487,14 +487,20 @@ class _LeaveCard extends ConsumerWidget {
 
   Widget _buildStatusBadge(BuildContext context) {
     String statusText = leave.status.name.toUpperCase().replaceAll('_', ' ');
+
+    if (leave.status == LeaveStatus.managementApprovedLegacy) {
+      statusText = 'MANAGERS APPROVED';
+    } else if (leave.status == LeaveStatus.managersApproved) {
+      statusText = 'MANAGERS APPROVED';
+    } else if (leave.status == LeaveStatus.sectionHeadForwarded) {
+      statusText = 'SECTION HEAD FORWARDED';
+    } else if (leave.status == LeaveStatus.managementApproved) {
+      statusText = 'MANAGEMENT APPROVED';
+    }
+
     Color statusColor = _getStatusColor(context, leave.status);
 
-    // MASKING for Staff: Show "PENDING" instead of "MANAGEMENT APPROVED"
-    if (currentUser.role == AppRoles.staff &&
-        leave.status == LeaveStatus.managementApproved) {
-      statusText = 'PENDING';
-      // statusColor is already handled by _getStatusColor
-    }
+    // Masking REMOVED
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -521,8 +527,12 @@ class _LeaveCard extends ConsumerWidget {
           leave.currentStage == LeaveStage.finalization;
     }
     // Management Actions
-    if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(currentUser.role)) {
-      return leave.currentStage == LeaveStage.managementReview;
+    // Management / Upper Authority Actions
+    if (![AppRoles.staff, AppRoles.sectionHead].contains(currentUser.role)) {
+      // Can act on Management Review
+      if (leave.currentStage == LeaveStage.managementReview) return true;
+      // Can intervene on Section Head Review
+      if (leave.currentStage == LeaveStage.sectionHeadReview) return true;
     }
     return false;
   }
@@ -597,11 +607,11 @@ class _LeaveCard extends ConsumerWidget {
           ),
         ];
       }
-    } else if ([
-      AppRoles.md,
-      AppRoles.exd,
-      AppRoles.hr,
+    } else if (![
+      AppRoles.staff,
+      AppRoles.sectionHead,
     ].contains(currentUser.role)) {
+      // Management / Upper Authority Buttons
       buttons = [
         _actionBtn(
           context,
@@ -623,7 +633,7 @@ class _LeaveCard extends ConsumerWidget {
             context,
             ref,
             LeaveAction.approve,
-            'Accept Request',
+            'Accept Request', // Triggers "approve" action which translates to Management Approved
           ),
         ),
       ];

@@ -75,7 +75,10 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
 const _$LeaveStatusEnumMap = {
   LeaveStatus.pending: 'pending',
   LeaveStatus.forwarded: 'forwarded',
-  LeaveStatus.managementApproved: 'management_approved',
+  LeaveStatus.managersApproved: 'managersapproved',
+  LeaveStatus.managementApprovedLegacy: 'management_approved',
+  LeaveStatus.sectionHeadForwarded: 'sectionheadforwarded',
+  LeaveStatus.managementApproved: 'managementapproved',
   LeaveStatus.approved: 'approved',
   LeaveStatus.rejected: 'rejected',
 };

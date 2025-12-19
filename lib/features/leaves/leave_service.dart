@@ -21,17 +21,15 @@ class LeaveService extends _$LeaveService {
     } else if (user.role == AppRoles.sectionHead) {
       // Section Head: Leaves from their section
       if (user.section != null) {
-        // Enforce Firestore Rule: resource.data.userSection == user.section
         query = query.where('userSection', isEqualTo: user.section);
       }
-    } else if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(user.role)) {
-      // Management: Fetch ALL requests to support History view.
-      // Client-side filtering will separate 'Pending' from 'History'.
-      // query = query.where('currentStage', isEqualTo: 'management_review');
+    } else {
+      // Catch-all for Managers/Upper Authority (Anyone not Staff or Section Head)
+      // Fetch ALL requests to support simultaneous visibility (or history).
+      // Client-side filtering will handle specific views/tabs.
     }
 
     // Note: For complex multi-field queries, indexes will be needed.
-    // We will do basic ordering here.
     return query.orderBy('appliedAt', descending: true).snapshots().map((qs) {
       final leaves = qs.docs
           .map((doc) => LeaveRequestModel.fromJson(doc.data()))
@@ -46,6 +44,14 @@ class LeaveService extends _$LeaveService {
   }
 
   Future<void> createLeave(LeaveRequestModel leave) async {
+    // If a Manager/Upper Authority requests leave, route directly to Management Review
+    // Logic: Anyone not Staff/SectionHead implies Upper Authority
+    if (![AppRoles.staff, AppRoles.sectionHead].contains(leave.userRole)) {
+      leave = leave.copyWith(
+        currentStage: LeaveStage.managementReview,
+        status: LeaveStatus.forwarded,
+      );
+    }
     await _leavesColl.doc(leave.id).set(leave.toJson());
   }
 
@@ -58,18 +64,44 @@ class LeaveService extends _$LeaveService {
     LeaveStatus newStatus = leave.status;
     LeaveStage newStage = leave.currentStage;
 
+    bool isUpperAuthority = ![
+      AppRoles.staff,
+      AppRoles.sectionHead,
+    ].contains(actor.role);
+
     // State Machine Logic
     if (leave.currentStage == LeaveStage.sectionHeadReview) {
-      // Step 2: Section Head Review
-      if (action == LeaveAction.reject) {
-        newStatus = LeaveStatus.rejected;
-        newStage = LeaveStage.completed;
-      } else if (action == LeaveAction.forward) {
-        newStatus = LeaveStatus.forwarded;
-        newStage = LeaveStage.managementReview;
-      } else if (action == LeaveAction.approve) {
-        newStatus = LeaveStatus.approved;
-        newStage = LeaveStage.completed;
+      // Step 2: Section Head Review (OR Upper Authority Intervention)
+
+      if (isUpperAuthority) {
+        if (action == LeaveAction.reject) {
+          // Upper authority REJECTED
+          // Mark as rejected, stage completed.
+          newStatus = LeaveStatus.rejected;
+          newStage = LeaveStage.completed;
+        } else if (action == LeaveAction.approve) {
+          // Upper authority APPROVED
+          if (actor.role == AppRoles.management) {
+            newStatus = LeaveStatus.managementApproved;
+          } else {
+            // Managers (MD, EXD, HR)
+            newStatus = LeaveStatus.managersApproved;
+          }
+          newStage = LeaveStage.finalization;
+        }
+      } else {
+        // Section Head Logic
+        if (action == LeaveAction.reject) {
+          newStatus = LeaveStatus.rejected;
+          newStage = LeaveStage.completed;
+        } else if (action == LeaveAction.forward) {
+          // Changed from 'forwarded' to 'sectionHeadForwarded' as per request
+          newStatus = LeaveStatus.sectionHeadForwarded;
+          newStage = LeaveStage.managementReview;
+        } else if (action == LeaveAction.approve) {
+          newStatus = LeaveStatus.approved;
+          newStage = LeaveStage.completed;
+        }
       }
     } else if (leave.currentStage == LeaveStage.managementReview) {
       // Step 3: Management Review
@@ -77,8 +109,11 @@ class LeaveService extends _$LeaveService {
         newStatus = LeaveStatus.rejected;
         newStage = LeaveStage.completed;
       } else if (action == LeaveAction.approve) {
-        // "Grant"
-        newStatus = LeaveStatus.managementApproved;
+        if (actor.role == AppRoles.management) {
+          newStatus = LeaveStatus.managementApproved;
+        } else {
+          newStatus = LeaveStatus.managersApproved;
+        }
         newStage = LeaveStage.finalization;
       }
     } else if (leave.currentStage == LeaveStage.finalization) {

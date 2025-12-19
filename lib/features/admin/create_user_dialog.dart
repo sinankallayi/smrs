@@ -213,6 +213,14 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   }
 
   Future<void> _saveUser() async {
+    // Safety check: ensure role is selected
+    if (_selectedRole == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a role')));
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
@@ -224,7 +232,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
               name: _nameController.text.trim(),
-              role: _selectedRole!,
+              role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
             );
       } else {
@@ -233,7 +241,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
             .updateUser(
               uid: widget.userToEdit!.id,
               name: _nameController.text.trim(),
-              role: _selectedRole!,
+              role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
               isActive: _isActive,
             );

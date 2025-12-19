@@ -13,7 +13,7 @@ class ThemeController extends _$ThemeController {
   @override
   Future<ThemeState> build() async {
     final prefs = await SharedPreferences.getInstance();
-    final modeIndex = prefs.getInt(kThemeModeKey) ?? ThemeMode.system.index;
+    final modeIndex = prefs.getInt(kThemeModeKey) ?? ThemeMode.light.index;
     final colorValue = prefs.getInt(kColorKey) ?? Colors.blue.value;
 
     return ThemeState(

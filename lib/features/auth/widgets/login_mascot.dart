@@ -17,17 +17,17 @@ class LoginMascot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 120,
-      width: 120,
+      height: 150,
+      width: 150,
       child: Stack(
         alignment: Alignment.center,
-        clipBehavior: Clip.none, // Allow bubble to overflow
+        clipBehavior: Clip.none,
         children: [
           // Speech Bubble
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
-            top: message != null ? -60 : 20, // Pop up animation
+            top: message != null ? -50 : 20,
             right: -80,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
@@ -39,207 +39,197 @@ class LoginMascot extends StatelessWidget {
                 ),
                 constraints: const BoxConstraints(maxWidth: 160),
                 decoration: BoxDecoration(
-                  color: isError ? Colors.red[100] : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isError ? Colors.red[50] : Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                    bottomLeft: Radius.circular(0),
+                  ),
                   border: Border.all(
-                    color: isError ? Colors.red : Colors.grey[300]!,
+                    color: isError
+                        ? Colors.red.withOpacity(0.5)
+                        : Colors.blueGrey.withOpacity(0.2),
                     width: 1,
                   ),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Text(
                   message ?? '',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isError ? Colors.red[900] : Colors.black87,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isError ? Colors.red[900] : Colors.blueGrey[800],
+                    fontFamily: 'monospace',
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
           ),
-          // Head
+
+          // Robot Image Base
           Container(
-            width: 100,
-            height: 100,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
+                  color: Colors.black38,
+                  blurRadius: 15,
+                  offset: Offset(0, 8),
                 ),
               ],
-            ),
-          ),
-
-          // Left Eye Area
-          Positioned(
-            left: 25,
-            top: 35,
-            child: Container(
-              width: 30,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
               ),
-              child: Stack(
-                children: [
-                  // Pupil
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 100),
-                    alignment: Alignment(
-                      // Map reaction: -1.0 (left) to 1.0 (right)
-                      // We clamp movement to a nice range inside eye
-                      (textPosition * 2 - 1).clamp(-0.8, 0.8),
-                      isPasswordFocused ? 1.0 : 0.0, // Look down if hiding?
-                    ),
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
+            ),
+            // ClipRRect to ensure image stays circular/within bounds if needed
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(65),
+              child: Image.asset(
+                'assets/images/robot_login.png',
+                fit: BoxFit.cover,
+                errorBuilder: (c, o, s) => Container(
+                  // Fallback if image fails or before configured
+                  color: Colors.blueGrey[800],
+                  child: const Center(
+                    child: Icon(
+                      Icons.smart_toy,
+                      size: 50,
+                      color: Colors.white54,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          // Right Eye Area
-          Positioned(
-            right: 25,
-            top: 35,
-            child: Container(
-              width: 30,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Stack(
-                children: [
-                  // Pupil
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 100),
-                    alignment: Alignment(
-                      (textPosition * 2 - 1).clamp(-0.8, 0.8),
-                      isPasswordFocused ? 1.0 : 0.0,
-                    ),
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Nose (Small dot)
-          Positioned(
-            top: 60,
-            child: Container(
-              width: 8,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-
-          // Mouth (Smile or Sad)
-          Positioned(
-            top: 75,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 20,
-              height: isError ? 10 : 10,
-              decoration: BoxDecoration(
-                border: Border(
-                  // If error, curve up (frown), else curve down (smile)
-                  top: isError
-                      ? BorderSide(width: 2, color: Colors.grey[800]!)
-                      : BorderSide.none,
-                  bottom: isError
-                      ? BorderSide.none
-                      : BorderSide(width: 2, color: Colors.grey[800]!),
                 ),
-                borderRadius: isError
-                    ? const BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10),
-                      )
-                    : const BorderRadius.only(
-                        bottomLeft: Radius.circular(10),
-                        bottomRight: Radius.circular(10),
+              ),
+            ),
+          ),
+
+          // Animated Eyes Overlay
+          // We assume the eyes in the image are roughly at the center-top.
+          // We will create a transparent container that holds the moving pupils.
+          Positioned(
+            top: 45, // Tuned for standard head proportion
+            child: SizedBox(
+              width: 70, // Eye span
+              height: 30, // Eye height
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Left Eye Pupil
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Align(
+                      alignment: Alignment(
+                        (textPosition * 2 - 1).clamp(-1.0, 1.0),
+                        isPasswordFocused ? 1.0 : 0.0,
                       ),
-              ),
-            ),
-          ),
-
-          // Hands (Visible only when password focused)
-          // Left Hand
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutBack,
-            bottom: isPasswordFocused ? 45 : -40, // Move up to cover eye
-            left: isPasswordFocused ? 20 : 0,
-            child: Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey[300]!, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isError
+                              ? Colors.redAccent.withOpacity(0.8)
+                              : Colors.cyanAccent.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: isError
+                                  ? Colors.redAccent
+                                  : Colors.cyanAccent,
+                              blurRadius: 5,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Right Eye Pupil
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Align(
+                      alignment: Alignment(
+                        (textPosition * 2 - 1).clamp(-1.0, 1.0),
+                        isPasswordFocused ? 1.0 : 0.0,
+                      ),
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isError
+                              ? Colors.redAccent.withOpacity(0.8)
+                              : Colors.cyanAccent.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: isError
+                                  ? Colors.redAccent
+                                  : Colors.cyanAccent,
+                              blurRadius: 5,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Right Hand
+          // Hands Overlay (Slide up)
+          // We use simple rounded-rect shapes for hands to cover the eyes
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
-            bottom: isPasswordFocused ? 45 : -40,
-            right: isPasswordFocused ? 20 : 0,
-            child: Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey[300]!, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+            bottom: isPasswordFocused ? 50 : -20,
+            left: isPasswordFocused ? 40 : 10,
+            child: Transform.rotate(
+              angle: -0.2,
+              child: Container(
+                width: 25,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCFD8DC), // Match silver tone
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white54),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 3),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            bottom: isPasswordFocused ? 50 : -20,
+            right: isPasswordFocused ? 40 : 10,
+            child: Transform.rotate(
+              angle: 0.2,
+              child: Container(
+                width: 25,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCFD8DC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white54),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 3),
+                  ],
+                ),
               ),
             ),
           ),

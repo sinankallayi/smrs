@@ -9,6 +9,7 @@ class AppRoles {
   static const String exd = 'exd';
   static const String hr = 'hr';
   static const String sectionHead = 'sectionHead';
+  static const String management = 'management';
   static const String staff = 'staff';
 
   static const List<String> values = [
@@ -17,6 +18,8 @@ class AppRoles {
     exd,
     hr,
     sectionHead,
+
+    management,
     staff,
   ];
 }

@@ -21,7 +21,13 @@ enum LeaveStatus {
   pending,
   @JsonValue('forwarded')
   forwarded,
-  @JsonValue('management_approved')
+  @JsonValue('managersapproved')
+  managersApproved,
+  @JsonValue('management_approved') // Support for existing records
+  managementApprovedLegacy,
+  @JsonValue('sectionheadforwarded')
+  sectionHeadForwarded,
+  @JsonValue('managementapproved')
   managementApproved,
   @JsonValue('approved')
   approved,

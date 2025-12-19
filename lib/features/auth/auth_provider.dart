@@ -85,6 +85,10 @@ class AuthController extends _$AuthController {
         app: tempApp,
       ).createUserWithEmailAndPassword(email: email, password: password);
 
+      if (userCredential.user == null) {
+        throw Exception("Failed to create user: Firebase returned null");
+      }
+
       final user = UserModel(
         id: userCredential.user!.uid,
         email: email,

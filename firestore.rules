@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function isManagement(userData) {
-      return userData.role in ['md', 'exd', 'hr'];
+      return userData.role in ['management', 'md', 'exd', 'hr'];
     }
 
     function isSectionHead(userData) {

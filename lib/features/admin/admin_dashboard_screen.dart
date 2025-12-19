@@ -16,55 +16,67 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(16),
-        children: [
-          rolesAsync.when(
-            data: (roles) {
-              // Filter out system roles to get Management roles
-              final managementRoles = roles
-                  .where(
-                    (r) =>
-                        r != AppRoles.superAdmin &&
-                        r != AppRoles.sectionHead &&
-                        r != AppRoles.staff,
-                  )
-                  .toList();
-              // Ensure core management roles are always present if not deleted
-              // (This might be redundant if Firestore is the source of truth, but good for safety)
+      body: rolesAsync.when(
+        data: (roles) {
+          // 1. Managers Card (Between SectionHead and Management)
+          // Exclude SuperAdmin, Management, Staff, and SectionHead
+          final managerRoles = roles.where((r) {
+            return r != AppRoles.superAdmin &&
+                r != AppRoles.management &&
+                r != AppRoles.staff &&
+                r != AppRoles.sectionHead;
+          }).toList();
 
-              return _AdminCard(
+          return GridView.count(
+            crossAxisCount: 2,
+            padding: const EdgeInsets.all(16),
+            children: [
+              _AdminCard(
                 icon: LucideIcons.briefcase,
+                title: 'Managers',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => UserManagementScreen(
+                      title: 'Managers',
+                      allowedRoles: managerRoles,
+                    ),
+                  ),
+                ),
+              ),
+              _AdminCard(
+                icon: LucideIcons.shieldAlert, // Different icon for Management
                 title: 'Management',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => UserManagementScreen(
-                      title: 'Management Team',
-                      allowedRoles: managementRoles,
+                      title: 'Management',
+                      allowedRoles: const [
+                        AppRoles.management,
+                      ], // Explicitly pass the single role
                     ),
                   ),
                 ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, s) => Center(child: Text('Error: $e')),
-          ),
-          _AdminCard(
-            icon: LucideIcons.store,
-            title: 'Section Heads',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const UserManagementScreen(
-                  title: 'Section Heads',
-                  allowedRoles: [AppRoles.sectionHead],
+              ),
+              _AdminCard(
+                icon: LucideIcons.store,
+                title: 'Section Heads',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const UserManagementScreen(
+                      title: 'Section Heads',
+                      allowedRoles: [AppRoles.sectionHead],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('Error: $e')),
       ),
     );
   }

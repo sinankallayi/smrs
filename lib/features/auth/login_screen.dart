@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../shared/widgets/glass_container.dart';
 import 'auth_provider.dart';
-import 'widgets/login_mascot.dart';
+import 'widgets/grid_painter.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,67 +18,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _emailFocusNode = FocusNode();
-  final _passwordFocusNode = FocusNode();
 
   bool _isLoading = false;
   bool _isObscured = true;
-  bool _isPasswordFocused = false;
-  double _textPosition = 0.0;
-  String? _mascotMessage;
-  bool _isMascotError = false;
-  Timer? _messageTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _emailFocusNode.addListener(() {
-      setState(() {});
-    });
-    _passwordFocusNode.addListener(() {
-      setState(() {
-        _isPasswordFocused = _passwordFocusNode.hasFocus;
-      });
-    });
-    _emailController.addListener(() {
-      // Calculate cursor position factor (0.0 to 1.0)
-      // Assuming 30 characters is max width "look"
-      final length = _emailController.text.length;
-      setState(() {
-        _textPosition = (length / 30.0).clamp(0.0, 1.0);
-      });
-    });
-  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _emailFocusNode.dispose();
-    _passwordFocusNode.dispose();
-    _messageTimer?.cancel();
     super.dispose();
   }
 
-  void _showMascotMessage(String message, {bool isError = false}) {
-    _messageTimer?.cancel();
-    setState(() {
-      _mascotMessage = message;
-      _isMascotError = isError;
-    });
-    _messageTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _mascotMessage = null;
-          _isMascotError = false;
-        });
-      }
-    });
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
-      _showMascotMessage("Please fill in all fields!", isError: true);
       return;
     }
 
@@ -93,11 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Navigation is handled by router redirect
     } catch (e) {
       if (mounted) {
-        // Show error via mascot
-        _showMascotMessage(
-          "Oops! ${e.toString().split(']').last.trim()}",
-          isError: true,
-        );
+        _showError("Oops! ${e.toString().split(']').last.trim()}");
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -109,19 +68,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background - Mesh Gradient Placeholder
+          // Background - Professional Dark Gradient
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.tertiary,
+                  Color(0xFF263238), // Blue Grey 900
+                  Color(0xFF37474F), // Blue Grey 800
+                  Color(0xFF000000), // Black
                 ],
+                stops: [0.0, 0.5, 1.0],
               ),
             ),
           ),
+
+          // Subtle Tech overlay pattern
+          Positioned.fill(child: CustomPaint(painter: GridPainter())),
 
           Center(
             child: SingleChildScrollView(
@@ -129,13 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  LoginMascot(
-                    isPasswordFocused: _isPasswordFocused,
-                    textPosition: _textPosition,
-                    message: _mascotMessage,
-                    isError: _isMascotError,
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40), // Top spacing
                   GlassContainer(
                     width: 400,
                     opacity: 0.2,
@@ -144,6 +102,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const Icon(
+                            LucideIcons.shieldCheck,
+                            size: 48,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(height: 16),
                           const Text(
                             'SMRS Login',
                             style: TextStyle(
@@ -152,10 +116,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               color: Colors.white,
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Enter your credentials to continue',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
                           const SizedBox(height: 32),
                           TextFormField(
                             controller: _emailController,
-                            focusNode: _emailFocusNode,
                             decoration: const InputDecoration(
                               hintText: 'Email',
                               prefixIcon: Icon(
@@ -173,7 +144,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _passwordController,
-                            focusNode: _passwordFocusNode,
                             obscureText: _isObscured,
                             decoration: InputDecoration(
                               hintText: 'Password',
@@ -216,14 +186,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onPressed: _isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: Colors.blue,
+                                foregroundColor:
+                                    Colors.blueGrey[900], // Updated color
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: _isLoading
                                   ? const CircularProgressIndicator()
-                                  : const Text('Sign In'),
+                                  : const Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 16),

@@ -108,8 +108,25 @@ class ConfigService extends _$ConfigService {
     final rolesSnapshot = await _settingsColl.doc('roles').get();
     if (!rolesSnapshot.exists) {
       await _settingsColl.doc('roles').set({
-        'values': ['superAdmin', 'md', 'exd', 'hr', 'sectionHead', 'staff'],
+        'values': [
+          'superAdmin',
+          'md',
+          'exd',
+          'hr',
+          'sectionHead',
+          'management',
+          'staff',
+        ],
       });
+    } else {
+      // Ensure 'management' role exists (migration)
+      final existingRoles = List<String>.from(
+        rolesSnapshot.data()?['values'] ?? [],
+      );
+      if (!existingRoles.contains('management')) {
+        existingRoles.add('management');
+        await _settingsColl.doc('roles').update({'values': existingRoles});
+      }
     }
 
     final sectionsSnapshot = await _settingsColl.doc('sections').get();
