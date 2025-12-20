@@ -40,33 +40,69 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           return const SuperAdminHomeScreen();
         }
 
-        List<Widget> pages = [
-          HomeScreen(user: user),
-          LeaveListScreen(user: user),
-          // Container(), // Notifications placeholder - Removed
-          const SettingsScreen(),
-        ];
-
-        List<NavigationDestination> destinations = [
+        // RE-DOING LIST CONSTRUCTION FOR CLARITY
+        final List<Widget> finalPages = [HomeScreen(user: user)];
+        final List<NavigationDestination> finalDestinations = [
           const NavigationDestination(
             icon: Icon(LucideIcons.home),
             label: 'Home',
           ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.calendar),
-            label: 'Leaves',
-          ),
-
-          const NavigationDestination(
-            icon: Icon(LucideIcons.settings),
-            label: 'Settings',
-          ),
         ];
 
+        // 2. Second Tab: Leaves / Review
+        if (user.role == AppRoles.staff) {
+          finalPages.add(LeaveListScreen(user: user));
+          finalDestinations.add(
+            const NavigationDestination(
+              icon: Icon(LucideIcons.calendar),
+              label: 'Leaves',
+            ),
+          );
+        } else {
+          // Manager/SectionHead: "Review" or "Leaves" (Office)
+          // For Managers, this will be strictly Inbox/History (exclude self)
+          // For SectionHeads, this is their Dashboard
+          finalPages.add(
+            LeaveListScreen(
+              user: user,
+              excludeCurrentUser: [
+                AppRoles.md,
+                AppRoles.exd,
+                AppRoles.hr,
+                AppRoles.management,
+                AppRoles.sectionHead,
+              ].contains(user.role),
+            ),
+          );
+          finalDestinations.add(
+            const NavigationDestination(
+              icon: Icon(LucideIcons.checkSquare),
+              label: 'Review',
+            ),
+          );
+        }
+
+        // 3. Middle Tabs (Role Specific)
+        // Only for Managers who process leaves AND apply for leaves (MD, EXD, HR, SectionHead)
+        // Management role is purely for approval, so they don't get 'My Leaves' or 'Apply'.
+        if ([
+          AppRoles.md,
+          AppRoles.exd,
+          AppRoles.hr,
+          AppRoles.sectionHead,
+        ].contains(user.role)) {
+          finalPages.add(LeaveListScreen(user: user, onlyCurrentUser: true));
+          finalDestinations.add(
+            const NavigationDestination(
+              icon: Icon(LucideIcons.fileSignature),
+              label: 'My Leaves',
+            ),
+          );
+        }
+
         if (user.role == AppRoles.hr) {
-          pages.insert(2, const ManageStaffScreen());
-          destinations.insert(
-            2,
+          finalPages.add(const ManageStaffScreen());
+          finalDestinations.add(
             const NavigationDestination(
               icon: Icon(LucideIcons.users),
               label: 'Staff',
@@ -74,17 +110,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         }
 
+        // 4. Last Tab: Settings
+        finalPages.add(const SettingsScreen());
+        finalDestinations.add(
+          const NavigationDestination(
+            icon: Icon(LucideIcons.settings),
+            label: 'Settings',
+          ),
+        );
+
         return Scaffold(
           extendBody: true,
-          body: IndexedStack(index: _selectedIndex, children: pages),
+          body: IndexedStack(index: _selectedIndex, children: finalPages),
           bottomNavigationBar: GlassNavBar(
             selectedIndex: _selectedIndex,
             onDestinationSelected: (idx) =>
                 setState(() => _selectedIndex = idx),
-            destinations: destinations,
+            destinations: finalDestinations,
           ),
           floatingActionButton:
-              (_selectedIndex == 1 && user.role == AppRoles.staff)
+              // Show FAB if:
+              // 1. Staff on 'Leaves' tab (index 1)
+              // 2. Manager on 'My Leaves' tab (index 2)
+              // Management role does NOT see this.
+              ((_selectedIndex == 1 && user.role == AppRoles.staff) ||
+                  (_selectedIndex == 2 &&
+                      [
+                        AppRoles.md,
+                        AppRoles.exd,
+                        AppRoles.hr,
+                        AppRoles.sectionHead,
+                      ].contains(user.role)))
               ? FloatingActionButton(
                   onPressed: () {
                     Navigator.push(

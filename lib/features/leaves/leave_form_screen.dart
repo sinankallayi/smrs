@@ -49,8 +49,19 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       if (userDetails == null) throw Exception('User not found');
 
       // Ensure user has a section (Section Head needs to know where to route)
+      // Staff MUST have a section
       if (userDetails.section == null && userDetails.role == AppRoles.staff) {
         throw Exception('User has no section assigned');
+      }
+
+      // Determine initial stage based on role
+      LeaveStage initialStage = LeaveStage.sectionHeadReview;
+      LeaveStatus initialStatus = LeaveStatus.pending;
+
+      // If not Staff, route to Management Review
+      if (userDetails.role != AppRoles.staff) {
+        initialStage = LeaveStage.managementReview;
+        initialStatus = LeaveStatus.forwarded;
       }
 
       final leave = LeaveRequestModel(
@@ -58,13 +69,12 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
         userId: userDetails.id,
         userName: userDetails.name,
         userRole: userDetails.role,
-        userSection: userDetails
-            .section, // Fallback handled by nullable type or validation
+        userSection: userDetails.section,
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
-        status: LeaveStatus.pending,
-        currentStage: LeaveStage.sectionHeadReview,
+        status: initialStatus,
+        currentStage: initialStage,
         appliedAt: DateTime.now(),
         timeline: [],
       );

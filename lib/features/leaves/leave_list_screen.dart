@@ -11,11 +11,26 @@ import 'leave_service.dart';
 
 class LeaveListScreen extends ConsumerWidget {
   final UserModel user;
+  final bool excludeCurrentUser;
+  final bool onlyCurrentUser;
 
-  const LeaveListScreen({super.key, required this.user});
+  const LeaveListScreen({
+    super.key,
+    required this.user,
+    this.excludeCurrentUser = false,
+    this.onlyCurrentUser = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 1. "My Leaves" Mode (High Priority)
+    if (onlyCurrentUser) {
+      return SafeArea(
+        child: LeaveListWidget(user: user, onlyCurrentUser: true),
+      );
+    }
+
+    // 2. Section Head "Review/Dashboard" Mode
     if (user.role == AppRoles.sectionHead) {
       return DefaultTabController(
         length: 3,
@@ -32,51 +47,22 @@ class LeaveListScreen extends ConsumerWidget {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _LeaveList(
+                    LeaveListWidget(
                       user: user,
                       filterStages: const [LeaveStage.sectionHeadReview],
+                      excludeCurrentUser:
+                          true, // Explicitly exclude self from review
                     ),
-                    _LeaveList(
+                    LeaveListWidget(
                       user: user,
                       filterStages: const [LeaveStage.finalization],
+                      excludeCurrentUser: true,
                     ),
-                    _LeaveList(
+                    LeaveListWidget(
                       user: user,
                       filterStages: null, // Shows all/history
+                      excludeCurrentUser: true,
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    } else if (user.role != AppRoles.staff) {
-      // Management View
-      return DefaultTabController(
-        length: 2,
-        child: SafeArea(
-          child: Column(
-            children: [
-              TabBar(
-                tabs: [
-                  Tab(text: 'Pending Review'.toTitleCase()),
-                  Tab(text: 'History'.toTitleCase()),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _LeaveList(
-                      user: user,
-                      // Show both Management Review AND Section Head Review
-                      // so Management can intervene if needed.
-                      filterStages: const [
-                        LeaveStage.managementReview,
-                        LeaveStage.sectionHeadReview,
-                      ],
-                    ),
-                    _LeaveList(user: user, filterStages: null), // History
                   ],
                 ),
               ),
@@ -85,23 +71,112 @@ class LeaveListScreen extends ConsumerWidget {
         ),
       );
     }
+    // 3. Management/Manager "Review" Mode
+    else if (user.role != AppRoles.staff) {
+      // Management View Logic
+      // If showing "My Leaves" (onlyCurrentUser == true), show flat list
+      // If showing "Review/Inbox" (excludeCurrentUser == true), show Pending/History tabs
 
-    // Staff View
-    return SafeArea(child: _LeaveList(user: user));
+      // We need to know which filters are active to decide layout.
+      // But `LeaveListScreen` doesn't take these params in constructor, `_LeaveList` does.
+      // Wait, `LeaveListScreen` is the top level. The Dashboard creates it.
+      // We need to update `LeaveListScreen` to accept these params to pass down.
+
+      // Since I cannot change the constructor of LeaveListScreen easily without cascading changes (it's called in Dashboard),
+      // I will infer intent or add params to constructor.
+      // I added params in `DashboardScreen` call: `LeaveListScreen(user: user, excludeCurrentUser: true)`
+      // So I MUST update the constructor here.
+
+      // Review/Inbox Mode (or default fallback for managers)
+      // Separation logic:
+      // Separation logic:
+      // Management: Staff | Section Heads | Managers
+      // Managers (MD etc): Staff | Section Heads
+
+      final bool isManagementRole = user.role == AppRoles.management;
+
+      return DefaultTabController(
+        length: isManagementRole ? 3 : 2,
+        child: SafeArea(
+          child: Column(
+            children: [
+              TabBar(
+                tabs: [
+                  Tab(text: 'Staff Leaves'.toTitleCase()),
+                  Tab(text: 'Section Head Leaves'.toTitleCase()),
+                  if (isManagementRole)
+                    Tab(text: 'Manager Leaves'.toTitleCase()),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    // 1. Staff Leaves (Filtered by role 'staff')
+                    LeaveListWidget(
+                      user: user,
+                      filterStages: const [
+                        LeaveStage.managementReview,
+                        LeaveStage.sectionHeadReview,
+                      ],
+                      excludeCurrentUser: true,
+                      targetRole: AppRoles.staff,
+                    ),
+
+                    // 2. Section Head Leaves (Filtered by role 'sectionHead')
+                    LeaveListWidget(
+                      user: user,
+                      filterStages: const [LeaveStage.managementReview],
+                      excludeCurrentUser: true,
+                      targetRole: AppRoles.sectionHead,
+                    ),
+
+                    // 3. Manager Leaves (For Management Only)
+                    if (isManagementRole)
+                      LeaveListWidget(
+                        user: user,
+                        filterStages: const [LeaveStage.managementReview],
+                        excludeCurrentUser: true,
+                        targetRoleFilter: const [
+                          AppRoles.md,
+                          AppRoles.exd,
+                          AppRoles.hr,
+                        ], // List of roles
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } // Staff View
+    return SafeArea(child: LeaveListWidget(user: user));
   }
 }
 
-class _LeaveList extends ConsumerStatefulWidget {
+class LeaveListWidget extends ConsumerStatefulWidget {
   final UserModel user;
   final List<LeaveStage>? filterStages;
+  final bool excludeCurrentUser;
+  final bool onlyCurrentUser;
+  // New role filters
+  final String? targetRole;
+  final List<String>? targetRoleFilter;
 
-  const _LeaveList({required this.user, this.filterStages});
+  const LeaveListWidget({
+    required this.user,
+    this.filterStages,
+    this.excludeCurrentUser = false,
+    this.onlyCurrentUser = false,
+    this.targetRole,
+    this.targetRoleFilter,
+  });
 
   @override
-  ConsumerState<_LeaveList> createState() => _LeaveListState();
+  ConsumerState<LeaveListWidget> createState() => _LeaveListWidgetState();
 }
 
-class _LeaveListState extends ConsumerState<_LeaveList> {
+class _LeaveListWidgetState extends ConsumerState<LeaveListWidget> {
   DateTime? _startDate;
   DateTime? _endDate;
   LeaveStatus? _statusFilter;
@@ -110,9 +185,16 @@ class _LeaveListState extends ConsumerState<_LeaveList> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Filter UI (Only for History view or if needed)
+        // Filter UI
+        // 1. Only for "Review/Work" views (where filterStages is null/empty or specifically requested)
+        // 2. NOT for Staff (simplified view)
+        // 3. NOT for "My Leaves" (onlyCurrentUser == true) - Requested by User
         if (widget.filterStages == null &&
-            ![AppRoles.staff, AppRoles.sectionHead].contains(widget.user.role))
+            ![
+              AppRoles.staff,
+              AppRoles.sectionHead,
+            ].contains(widget.user.role) &&
+            !widget.onlyCurrentUser)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: SingleChildScrollView(
@@ -208,6 +290,31 @@ class _LeaveListState extends ConsumerState<_LeaveList> {
               if (_statusFilter != null) {
                 leaves = leaves
                     .where((l) => l.status == _statusFilter)
+                    .toList();
+              }
+
+              // 2A. User Filter (Inbox vs My Leaves)
+              if (widget.excludeCurrentUser) {
+                // Must explicitly check != user.id
+                leaves = leaves
+                    .where((l) => l.userId != widget.user.id)
+                    .toList();
+              }
+              if (widget.onlyCurrentUser) {
+                leaves = leaves
+                    .where((l) => l.userId == widget.user.id)
+                    .toList();
+              }
+
+              // 2B. Role Separation Filter
+              if (widget.targetRole != null) {
+                leaves = leaves
+                    .where((l) => l.userRole == widget.targetRole)
+                    .toList();
+              }
+              if (widget.targetRoleFilter != null) {
+                leaves = leaves
+                    .where((l) => widget.targetRoleFilter!.contains(l.userRole))
                     .toList();
               }
 
@@ -343,6 +450,37 @@ class _LeaveCard extends ConsumerWidget {
                       _buildStatusBadge(context),
                     ],
                   ),
+
+                  // Display Section or Designations for Managers/SectionHeads
+                  if (leave.userRole == AppRoles.sectionHead &&
+                      leave.userSection != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Section: ${leave.userSection!.toTitleCase()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                  else if ([
+                    AppRoles.md,
+                    AppRoles.exd,
+                    AppRoles.hr,
+                  ].contains(leave.userRole))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Designation: ${leave.userRole.toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 8),
                   Text(
                     '${dateFormat.format(leave.startDate)} - ${dateFormat.format(leave.endDate)}',
@@ -559,6 +697,9 @@ class _LeaveCard extends ConsumerWidget {
     // Management Actions
     // Management / Upper Authority Actions
     if (![AppRoles.staff, AppRoles.sectionHead].contains(currentUser.role)) {
+      // CANNOT act on own leaves
+      if (leave.userId == currentUser.id) return false;
+
       // Can act on Management Review
       if (leave.currentStage == LeaveStage.managementReview) return true;
       // Can intervene on Section Head Review

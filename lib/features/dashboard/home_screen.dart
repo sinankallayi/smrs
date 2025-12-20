@@ -175,16 +175,24 @@ class HomeScreen extends ConsumerWidget {
                           ],
                         );
                       } else {
-                        // Management Logic
-                        // pending = Total Inbox (All waiting for review)
-                        pendingCount = leaves
+                        // Management & Executives Logic (MD, EXD, HR, Management)
+
+                        // 1. Inbox (Requests to Review)
+                        // Exclude own requests to avoid reviewing self
+                        final inboxLeaves = leaves
+                            .where((l) => l.userId != user.id)
+                            .toList();
+
+                        // Pending in Inbox: Waiting for Management Review
+                        final inboxPending = inboxLeaves
                             .where(
                               (l) =>
                                   l.currentStage == LeaveStage.managementReview,
                             )
                             .length;
-                        // forwarded = Subset from Section Heads
-                        forwardedCount = leaves
+
+                        // Forwarded to Inbox: Specifically from Section Heads
+                        final inboxForwarded = inboxLeaves
                             .where(
                               (l) =>
                                   l.currentStage ==
@@ -193,22 +201,94 @@ class HomeScreen extends ConsumerWidget {
                             )
                             .length;
 
-                        return Row(
+                        // 2. My Leaves (Personal)
+                        final myLeaves = leaves
+                            .where((l) => l.userId == user.id)
+                            .toList();
+
+                        // My Pending: Waiting for approval (could be Management Review if submitted directly)
+                        final myPending = myLeaves
+                            .where(
+                              (l) =>
+                                  l.status == LeaveStatus.pending ||
+                                  l.status == LeaveStatus.forwarded ||
+                                  l.status == LeaveStatus.sectionHeadForwarded,
+                            )
+                            .length;
+
+                        // My Approved
+                        final myApproved = myLeaves
+                            .where(
+                              (l) =>
+                                  l.status == LeaveStatus.approved ||
+                                  l.status == LeaveStatus.managementApproved ||
+                                  l.status == LeaveStatus.managersApproved,
+                            )
+                            .length;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: _buildSummaryCard(
-                                context,
-                                'Pending Requests'.toTitleCase(),
-                                '$pendingCount',
-                              ),
+                            Text(
+                              'Overview',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildSummaryCard(
-                                context,
-                                'Forwarded Leaves'.toTitleCase(),
-                                '$forwardedCount',
-                              ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'Inbox Pending'.toTitleCase(),
+                                    '$inboxPending',
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'From Sections'.toTitleCase(),
+                                    '$inboxForwarded',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'My Leaves',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'My Pending'.toTitleCase(),
+                                    '$myPending',
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    context,
+                                    'My Approved'.toTitleCase(),
+                                    '$myApproved',
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         );

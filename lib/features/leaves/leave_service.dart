@@ -45,8 +45,8 @@ class LeaveService extends _$LeaveService {
 
   Future<void> createLeave(LeaveRequestModel leave) async {
     // If a Manager/Upper Authority requests leave, route directly to Management Review
-    // Logic: Anyone not Staff/SectionHead implies Upper Authority
-    if (![AppRoles.staff, AppRoles.sectionHead].contains(leave.userRole)) {
+    // Logic: Anyone not Staff implies Upper Authority (including Section Heads)
+    if (leave.userRole != AppRoles.staff) {
       leave = leave.copyWith(
         currentStage: LeaveStage.managementReview,
         status: LeaveStatus.forwarded,

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../shared/models/user_model.dart'; // For AppRoles
 import '../../shared/widgets/glass_container.dart';
 import '../auth/auth_provider.dart';
+import '../leaves/office_history_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -82,6 +84,23 @@ class SettingsScreen extends ConsumerWidget {
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () => _showChangePasswordDialog(context, ref),
                     ),
+                    // Office History Link (For Managers, Management, Section Heads)
+                    if (![
+                      AppRoles.staff,
+                    ].contains(ref.read(userProfileProvider).value?.role)) ...[
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(LucideIcons.history),
+                        title: const Text('Office Leave History'),
+                        trailing: const Icon(LucideIcons.chevronRight),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OfficeHistoryScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
