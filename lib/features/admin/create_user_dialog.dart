@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/user_model.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/configuration/config_service.dart';
+import '../../shared/widgets/glass_container.dart';
 
 class CreateUserDialog extends ConsumerStatefulWidget {
   final UserModel? userToEdit;
@@ -19,6 +20,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _staffIdController = TextEditingController();
 
   String? _selectedRole;
   String? _selectedSection;
@@ -32,6 +34,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     if (widget.userToEdit != null) {
       _nameController.text = widget.userToEdit!.name;
       _emailController.text = widget.userToEdit!.email;
+      _staffIdController.text = widget.userToEdit!.staffId ?? '';
       _isActive = widget.userToEdit!.isActive;
       _selectedRole = widget.userToEdit!.role;
       _selectedSection = widget.userToEdit!.section;
@@ -43,172 +46,296 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   Widget build(BuildContext context) {
     final rolesAsync = ref.watch(rolesProvider);
     final sectionsAsync = ref.watch(sectionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark ? Colors.black : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final hintColor = isDark ? Colors.white70 : Colors.black54;
+    final fillColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.black.withOpacity(0.05);
 
-    return AlertDialog(
-      title: Text(widget.userToEdit != null ? 'Edit User' : 'Create User'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: GlassContainer(
+        borderRadius: 20,
+        color: glassColor,
+        opacity: isDark ? 0.6 : 0.8,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.userToEdit != null ? 'Edit User' : 'Create User',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.bold,
               ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-                enabled: widget.userToEdit == null,
-              ),
-              if (widget.userToEdit == null)
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                ),
-              const SizedBox(height: 16),
-
-              // Roles Dropdown
-              rolesAsync.when(
-                data: (roles) {
-                  // Filter roles if allowedRoles is set
-                  final validRoles =
-                      widget.allowedRoles ??
-                      roles.where((r) => r != AppRoles.superAdmin).toList();
-
-                  if (validRoles.isEmpty)
-                    return const Text('No roles available');
-
-                  // Initialize selectedRole for new users if not set
-                  if (!_initialized &&
-                      _selectedRole == null &&
-                      validRoles.isNotEmpty) {
-                    _selectedRole = validRoles.contains(AppRoles.staff)
-                        ? AppRoles.staff
-                        : validRoles.first;
-                    // If creating new user, section logic will trigger on change or explicit check
-                  }
-
-                  // Handle case where editing user has a role not in current list (legacy/removed)
-                  // We add it temporarily to allowing editing other fields, or force change?
-                  // Better to show it.
-                  final displayRoles = [...validRoles];
-                  if (_selectedRole != null &&
-                      !displayRoles.contains(_selectedRole)) {
-                    displayRoles.add(_selectedRole!);
-                  }
-
-                  if (displayRoles.length > 1) {
-                    return DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: const InputDecoration(labelText: 'Role'),
-                      items: displayRoles
-                          .map(
-                            (r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(r.toUpperCase()),
+            ),
+            const SizedBox(height: 20),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Moved Staff ID to top as requested
+                      if (_selectedRole == AppRoles.staff) ...[
+                        TextFormField(
+                          controller: _staffIdController,
+                          style: TextStyle(color: textColor),
+                          decoration: InputDecoration(
+                            labelText: 'Staff ID',
+                            labelStyle: TextStyle(color: hintColor),
+                            filled: true,
+                            fillColor: fillColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          _selectedRole = v;
-                          // Reset section if not section head (logic can be dynamic too but hardcoded for now based on requirement)
-                          // Ideally getting 'metadata' about roles from Firestore would be better (e.g. role 'staff' needs section)
-                          // For now, keeping legacy logic: Section Head needs section. Staff needs section (managed).
-                          // Wait, previously: SectionHead needed section. Staff needed section?
-                          // In UserManagementScreen logic: SectionHead -> select section.
-                        });
-                      },
-                      validator: (v) => v == null ? 'Required' : null,
-                    );
-                  } else if (displayRoles.isNotEmpty) {
-                    _selectedRole = displayRoles.first;
-                    return const SizedBox.shrink();
-                  }
-                  return const SizedBox.shrink();
-                },
-                error: (e, _) => Text('Error loading roles: $e'),
-                loading: () => const LinearProgressIndicator(),
-              ),
+                          ),
+                          validator: (v) {
+                            if (_selectedRole == AppRoles.staff &&
+                                (v == null || v.isEmpty)) {
+                              return 'Required for Staff';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
-              const SizedBox(height: 16),
-
-              // Sections Dropdown
-              // Logic: Show section if role is sectionHead, or maybe staff needs it too?
-              // Previous logic: "if (_selectedRole == AppRoles.sectionHead)"
-              // User requirement: "manage roles and sections".
-              // We should allow picking section for any role potentially, or just SectionHead.
-              // Let's stick to existing logic: If role is 'sectionHead', show section.
-              // BUT: `LeaveFormScreen` check: `if (userDetails.section == null && userDetails.role == AppRoles.staff)`
-              // This implies Staff SHOULD have a section too.
-              // So let's allow Section selection for SectionHead AND Staff.
-              if (_selectedRole == AppRoles.sectionHead ||
-                  _selectedRole == AppRoles.staff)
-                sectionsAsync.when(
-                  data: (sections) {
-                    // Ensure selected section is valid
-
-                    return DropdownButtonFormField<String>(
-                      value: _selectedSection,
-                      decoration: const InputDecoration(labelText: 'Section'),
-                      items: sections
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Text(s.toUpperCase()),
+                      TextFormField(
+                        controller: _nameController,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          labelStyle: TextStyle(color: hintColor),
+                          filled: true,
+                          fillColor: fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: TextStyle(color: hintColor),
+                          filled: true,
+                          fillColor: fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                        enabled: widget.userToEdit == null,
+                      ),
+                      if (widget.userToEdit == null) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          style: TextStyle(color: textColor),
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            labelStyle: TextStyle(color: hintColor),
+                            filled: true,
+                            fillColor: fillColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedSection = v),
-                      validator: (v) {
-                        if ((_selectedRole == AppRoles.sectionHead ||
-                                _selectedRole == AppRoles.staff) &&
-                            v == null) {
-                          return 'Required';
-                        }
-                        return null;
-                      },
-                    );
-                  },
-                  error: (e, _) => Text('Error loading sections: $e'),
-                  loading: () => const LinearProgressIndicator(),
-                ),
+                          ),
+                          obscureText: true,
+                          validator: (v) => v!.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
 
-              if (widget.userToEdit != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: SwitchListTile(
-                    title: const Text('Active Account'),
-                    subtitle: const Text('Disable to prevent login'),
-                    value: _isActive,
-                    onChanged: (v) => setState(() => _isActive = v),
+                      rolesAsync.when(
+                        data: (roles) {
+                          // Filter roles if allowedRoles is set
+                          final validRoles =
+                              widget.allowedRoles ??
+                              roles
+                                  .where((r) => r != AppRoles.superAdmin)
+                                  .toList();
+
+                          if (validRoles.isEmpty)
+                            return Text(
+                              'No roles available',
+                              style: TextStyle(color: textColor),
+                            );
+
+                          // Initialize selectedRole for new users if not set
+                          if (!_initialized &&
+                              _selectedRole == null &&
+                              validRoles.isNotEmpty) {
+                            _selectedRole = validRoles.contains(AppRoles.staff)
+                                ? AppRoles.staff
+                                : validRoles.first;
+                          }
+
+                          final displayRoles = [...validRoles];
+                          if (_selectedRole != null &&
+                              !displayRoles.contains(_selectedRole)) {
+                            displayRoles.add(_selectedRole!);
+                          }
+
+                          if (displayRoles.length > 1) {
+                            return DropdownButtonFormField<String>(
+                              value: _selectedRole,
+                              style: TextStyle(color: textColor),
+                              dropdownColor: isDark
+                                  ? Colors.grey[900]
+                                  : Colors.white,
+                              decoration: InputDecoration(
+                                labelText: 'Role',
+                                labelStyle: TextStyle(color: hintColor),
+                                filled: true,
+                                fillColor: fillColor,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: displayRoles
+                                  .map(
+                                    (r) => DropdownMenuItem<String>(
+                                      value: r,
+                                      child: Text(
+                                        r.toUpperCase(),
+                                        style: TextStyle(color: textColor),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedRole = v;
+                                });
+                              },
+                              validator: (v) => v == null ? 'Required' : null,
+                            );
+                          } else if (displayRoles.isNotEmpty) {
+                            _selectedRole = displayRoles.first;
+                            return const SizedBox.shrink();
+                          }
+                          return const SizedBox.shrink();
+                        },
+                        error: (e, _) => Text(
+                          'Error loading roles: $e',
+                          style: TextStyle(color: textColor),
+                        ),
+                        loading: () => const LinearProgressIndicator(),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      if (_selectedRole == AppRoles.sectionHead ||
+                          _selectedRole == AppRoles.staff)
+                        sectionsAsync.when(
+                          data: (sections) {
+                            // Ensure selected section is valid
+
+                            return DropdownButtonFormField<String>(
+                              value: _selectedSection,
+                              style: TextStyle(color: textColor),
+                              dropdownColor: isDark
+                                  ? Colors.grey[900]
+                                  : Colors.white,
+                              decoration: InputDecoration(
+                                labelText: 'Section',
+                                labelStyle: TextStyle(color: hintColor),
+                                filled: true,
+                                fillColor: fillColor,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: sections
+                                  .map(
+                                    (s) => DropdownMenuItem(
+                                      value: s,
+                                      child: Text(
+                                        s.toUpperCase(),
+                                        style: TextStyle(color: textColor),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedSection = v),
+                              validator: (v) {
+                                if ((_selectedRole == AppRoles.sectionHead ||
+                                        _selectedRole == AppRoles.staff) &&
+                                    v == null) {
+                                  return 'Required';
+                                }
+                                return null;
+                              },
+                            );
+                          },
+                          error: (e, _) => Text(
+                            'Error loading sections: $e',
+                            style: TextStyle(color: textColor),
+                          ),
+                          loading: () => const LinearProgressIndicator(),
+                        ),
+
+                      if (widget.userToEdit != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: SwitchListTile(
+                            title: Text(
+                              'Active Account',
+                              style: TextStyle(color: textColor),
+                            ),
+                            subtitle: Text(
+                              'Disable to prevent login',
+                              style: TextStyle(color: hintColor),
+                            ),
+                            value: _isActive,
+                            activeColor: Colors.blueAccent,
+                            onChanged: (v) => setState(() => _isActive = v),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: hintColor)),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _saveUser,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(),
+                        )
+                      : const Text('Save'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _saveUser,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(),
-                )
-              : const Text('Save'),
-        ),
-      ],
     );
   }
 
@@ -234,6 +361,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               name: _nameController.text.trim(),
               role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
+              staffId: _staffIdController.text.trim().isEmpty
+                  ? null
+                  : _staffIdController.text.trim(),
             );
       } else {
         await ref
@@ -243,6 +373,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               name: _nameController.text.trim(),
               role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
+              staffId: _staffIdController.text.trim().isEmpty
+                  ? null
+                  : _staffIdController.text.trim(),
               isActive: _isActive,
             );
       }

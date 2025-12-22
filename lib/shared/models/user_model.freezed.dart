@@ -28,6 +28,7 @@ mixin _$UserModel {
       throw _privateConstructorUsedError; // Changed from UserRole
   String? get section =>
       throw _privateConstructorUsedError; // Changed from UserSection
+  String? get staffId => throw _privateConstructorUsedError;
   String? get createdBy => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
 
@@ -52,6 +53,7 @@ abstract class $UserModelCopyWith<$Res> {
     String name,
     String role,
     String? section,
+    String? staffId,
     String? createdBy,
     bool isActive,
   });
@@ -77,6 +79,7 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
     Object? name = null,
     Object? role = null,
     Object? section = freezed,
+    Object? staffId = freezed,
     Object? createdBy = freezed,
     Object? isActive = null,
   }) {
@@ -101,6 +104,10 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
             section: freezed == section
                 ? _value.section
                 : section // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            staffId: freezed == staffId
+                ? _value.staffId
+                : staffId // ignore: cast_nullable_to_non_nullable
                       as String?,
             createdBy: freezed == createdBy
                 ? _value.createdBy
@@ -131,6 +138,7 @@ abstract class _$$UserModelImplCopyWith<$Res>
     String name,
     String role,
     String? section,
+    String? staffId,
     String? createdBy,
     bool isActive,
   });
@@ -155,6 +163,7 @@ class __$$UserModelImplCopyWithImpl<$Res>
     Object? name = null,
     Object? role = null,
     Object? section = freezed,
+    Object? staffId = freezed,
     Object? createdBy = freezed,
     Object? isActive = null,
   }) {
@@ -180,6 +189,10 @@ class __$$UserModelImplCopyWithImpl<$Res>
             ? _value.section
             : section // ignore: cast_nullable_to_non_nullable
                   as String?,
+        staffId: freezed == staffId
+            ? _value.staffId
+            : staffId // ignore: cast_nullable_to_non_nullable
+                  as String?,
         createdBy: freezed == createdBy
             ? _value.createdBy
             : createdBy // ignore: cast_nullable_to_non_nullable
@@ -202,6 +215,7 @@ class _$UserModelImpl implements _UserModel {
     required this.name,
     required this.role,
     this.section,
+    this.staffId,
     this.createdBy,
     this.isActive = true,
   });
@@ -222,6 +236,8 @@ class _$UserModelImpl implements _UserModel {
   final String? section;
   // Changed from UserSection
   @override
+  final String? staffId;
+  @override
   final String? createdBy;
   @override
   @JsonKey()
@@ -229,7 +245,7 @@ class _$UserModelImpl implements _UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, email: $email, name: $name, role: $role, section: $section, createdBy: $createdBy, isActive: $isActive)';
+    return 'UserModel(id: $id, email: $email, name: $name, role: $role, section: $section, staffId: $staffId, createdBy: $createdBy, isActive: $isActive)';
   }
 
   @override
@@ -242,6 +258,7 @@ class _$UserModelImpl implements _UserModel {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.role, role) || other.role == role) &&
             (identical(other.section, section) || other.section == section) &&
+            (identical(other.staffId, staffId) || other.staffId == staffId) &&
             (identical(other.createdBy, createdBy) ||
                 other.createdBy == createdBy) &&
             (identical(other.isActive, isActive) ||
@@ -257,6 +274,7 @@ class _$UserModelImpl implements _UserModel {
     name,
     role,
     section,
+    staffId,
     createdBy,
     isActive,
   );
@@ -282,6 +300,7 @@ abstract class _UserModel implements UserModel {
     required final String name,
     required final String role,
     final String? section,
+    final String? staffId,
     final String? createdBy,
     final bool isActive,
   }) = _$UserModelImpl;
@@ -299,6 +318,8 @@ abstract class _UserModel implements UserModel {
   String get role; // Changed from UserRole
   @override
   String? get section; // Changed from UserSection
+  @override
+  String? get staffId;
   @override
   String? get createdBy;
   @override

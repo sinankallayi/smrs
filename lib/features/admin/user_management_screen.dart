@@ -94,8 +94,24 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         child: Text(user.name[0].toUpperCase()),
                       ),
                       title: Text(user.name),
-                      subtitle: Text(
-                        '${user.email} • ${user.section != null ? user.section!.toUpperCase() : user.role.toUpperCase()}',
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${user.email} • ${user.section != null ? user.section!.toUpperCase() : user.role.toUpperCase()}',
+                          ),
+                          if (user.staffId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                'Staff ID: ${user.staffId}',
+                                style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       trailing: IconButton(
                         icon: const Icon(LucideIcons.trash2, color: Colors.red),

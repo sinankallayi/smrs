@@ -39,9 +39,11 @@ class GlassContainer extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             (color ?? Colors.white).withOpacity(
-              opacity * 2,
+              (opacity * 2).clamp(0.0, 1.0),
             ), // Lighter top-left
-            (color ?? Colors.white).withOpacity(opacity), // Darker bottom-right
+            (color ?? Colors.white).withOpacity(
+              opacity.clamp(0.0, 1.0),
+            ), // Darker bottom-right
           ],
         ),
         boxShadow: [

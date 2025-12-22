@@ -40,6 +40,7 @@ class UserModel with _$UserModel {
     required String name,
     required String role, // Changed from UserRole
     String? section, // Changed from UserSection
+    String? staffId,
     String? createdBy,
     @Default(true) bool isActive,
   }) = _UserModel;
