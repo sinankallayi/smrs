@@ -7,6 +7,7 @@ import '../../shared/models/leave_request_model.dart';
 import '../../shared/models/user_model.dart';
 import '../../shared/widgets/glass_container.dart';
 import '../../shared/utils/string_extensions.dart';
+import '../auth/auth_provider.dart';
 import 'leave_service.dart';
 
 class LeaveListScreen extends ConsumerWidget {
@@ -359,11 +360,18 @@ class _LeaveListWidgetState extends ConsumerState<LeaveListWidget> {
   }
 }
 
-class _LeaveCard extends ConsumerWidget {
+class _LeaveCard extends ConsumerStatefulWidget {
   final LeaveRequestModel leave;
   final UserModel currentUser;
 
   const _LeaveCard({required this.leave, required this.currentUser});
+
+  @override
+  ConsumerState<_LeaveCard> createState() => _LeaveCardState();
+}
+
+class _LeaveCardState extends ConsumerState<_LeaveCard> {
+  bool _isExpanded = false;
 
   Color _getStatusColor(BuildContext context, LeaveStatus status) {
     // Masking REMOVED to show full transparency
@@ -415,258 +423,330 @@ class _LeaveCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GlassContainer(
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: _getStatusColor(context, leave.status),
-                borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _isExpanded = !_isExpanded;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: _getStatusColor(context, widget.leave.status),
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        leave.userName.toTitleCase(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      _buildStatusBadge(context),
-                    ],
-                  ),
-
-                  // Display Section or Designations for Managers/SectionHeads
-                  if (leave.userRole == AppRoles.sectionHead &&
-                      leave.userSection != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Section: ${leave.userSection!.toTitleCase()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    )
-                  else if ([
-                    AppRoles.md,
-                    AppRoles.exd,
-                    AppRoles.hr,
-                  ].contains(leave.userRole))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Designation: ${leave.userRole.toUpperCase()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${dateFormat.format(leave.startDate)} - ${dateFormat.format(leave.endDate)}',
-                  ),
-                  const SizedBox(height: 4),
-                  Text(leave.reason, style: TextStyle(color: Colors.grey[600])),
-
-                  // Action History - Visible to ALL
-                  if (leave.timeline.isNotEmpty) ...[
-                    const Divider(height: 24),
-                    Text(
-                      'Action History',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: isDark ? Colors.white54 : Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...leave.timeline.map((entry) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              _getActionIcon(entry.status),
-                              size: 16,
-                              color: _getActionColor(context, entry.status),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            widget.leave.userName.toTitleCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
+                          ),
+                          Row(
+                            children: [
+                              _buildStatusBadge(context),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isExpanded
+                                    ? LucideIcons.chevronUp
+                                    : LucideIcons.chevronDown,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      // Display Section or Designations for Managers/SectionHeads
+                      if (widget.leave.userRole == AppRoles.sectionHead &&
+                          widget.leave.userSection != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Section: ${widget.leave.userSection!.toTitleCase()}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )
+                      else if ([
+                        AppRoles.md,
+                        AppRoles.exd,
+                        AppRoles.hr,
+                      ].contains(widget.leave.userRole))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Designation: ${widget.leave.userRole.toUpperCase()}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        children: [
+                          Text(
+                            '${dateFormat.format(widget.leave.startDate)} - ${dateFormat.format(widget.leave.endDate)}',
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _getLeaveTypeLabel(widget.leave.type),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.leave.reason,
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+
+                      // EXPANDABLE CONTENT (Action History & Buttons)
+                      if (_isExpanded) ...[
+                        // Action History - Visible to ALL
+                        if (widget.leave.timeline.isNotEmpty) ...[
+                          const Divider(height: 24),
+                          Text(
+                            'Action History',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isDark ? Colors.white54 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...widget.leave.timeline.map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white70
-                                            : Colors.black87,
-                                        fontSize: 13,
-                                      ),
+                                  Icon(
+                                    _getActionIcon(entry.status),
+                                    size: 16,
+                                    color: _getActionColor(
+                                      context,
+                                      entry.status,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        TextSpan(
-                                          text:
-                                              entry.byUserRole ==
-                                                      AppRoles.sectionHead &&
-                                                  entry.byUserSection != null
-                                              ? '${entry.byUserName.toTitleCase()} (${entry.byUserSection!.toUpperCase()}) '
-                                              : '${entry.byUserName.toTitleCase()} (${entry.byUserRole.toUpperCase()}) ',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: entry.status.toUpperCase(),
-                                          style: TextStyle(
-                                            color: _getActionColor(
-                                              context,
-                                              entry.status,
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87,
+                                              fontSize: 13,
                                             ),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 10,
+                                            children: [
+                                              TextSpan(
+                                                text:
+                                                    entry.byUserRole ==
+                                                            AppRoles
+                                                                .sectionHead &&
+                                                        entry.byUserSection !=
+                                                            null
+                                                    ? '${entry.byUserName.toTitleCase()} (${entry.byUserSection!.toUpperCase()}) '
+                                                    : '${entry.byUserName.toTitleCase()} (${entry.byUserRole.toUpperCase()}) ',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: entry.status
+                                                    .toUpperCase(),
+                                                style: TextStyle(
+                                                  color: _getActionColor(
+                                                    context,
+                                                    entry.status,
+                                                  ),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
+                                        Text(
+                                          DateFormat(
+                                            'MMM dd, hh:mm a',
+                                          ).format(entry.date),
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        if (entry.remark.isNotEmpty)
+                                          Container(
+                                            margin: const EdgeInsets.only(
+                                              top: 4,
+                                            ),
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'Remark: ${entry.remark}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    DateFormat(
-                                      'MMM dd, hh:mm a',
-                                    ).format(entry.date),
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 11,
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+
+                        // STAFF ONLY: Show Section Head Remark if available
+                        if (widget.currentUser.role == AppRoles.staff) ...[
+                          Builder(
+                            builder: (context) {
+                              // Find the latest remark from a Section Head that is NOT a 'Forward' action
+                              // 'Forward' remarks are for Management. 'Reject' remarks are for Staff.
+                              final sectionHeadEntry = widget.leave.timeline
+                                  .cast<TimelineEntry?>()
+                                  .firstWhere(
+                                    (e) =>
+                                        e != null &&
+                                        e.byUserRole == 'sectionHead' &&
+                                        e.status != 'forward' &&
+                                        e.remark.isNotEmpty,
+                                    orElse: () => null,
+                                  );
+
+                              if (sectionHeadEntry != null) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: scheme.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: scheme.primary.withOpacity(0.3),
                                     ),
                                   ),
-                                  if (entry.remark.isNotEmpty)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 4),
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        'Remark: ${entry.remark}',
-                                        style: const TextStyle(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Note from Section Head:',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
                                           fontSize: 12,
+                                          color: scheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        sectionHeadEntry.remark,
+                                        style: const TextStyle(
                                           fontStyle: FontStyle.italic,
                                         ),
                                       ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-
-                  // STAFF ONLY: Show Section Head Remark if available
-                  if (currentUser.role == AppRoles.staff) ...[
-                    Builder(
-                      builder: (context) {
-                        // Find the latest remark from a Section Head that is NOT a 'Forward' action
-                        // 'Forward' remarks are for Management. 'Reject' remarks are for Staff.
-                        final sectionHeadEntry = leave.timeline
-                            .cast<TimelineEntry?>()
-                            .firstWhere(
-                              (e) =>
-                                  e != null &&
-                                  e.byUserRole == 'sectionHead' &&
-                                  e.status != 'forward' &&
-                                  e.remark.isNotEmpty,
-                              orElse: () => null,
-                            );
-
-                        if (sectionHeadEntry != null) {
-                          return Container(
-                            margin: const EdgeInsets.only(top: 12),
-                            padding: const EdgeInsets.all(12),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: scheme.primary.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Note from Section Head:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: scheme.primary,
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  sectionHeadEntry.remark,
-                                  style: const TextStyle(
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ],
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ],
 
-                  if (_canAct()) ...[
-                    const SizedBox(height: 16),
-                    _buildActionButtons(ref, context),
-                  ],
-                ],
+                        if (_canAct()) ...[
+                          const SizedBox(height: 16),
+                          _buildActionButtons(ref, context),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    String statusText = leave.status.name.toUpperCase().replaceAll('_', ' ');
+    String statusText = widget.leave.status.name.toUpperCase().replaceAll(
+      '_',
+      ' ',
+    );
 
-    if (leave.status == LeaveStatus.managementApprovedLegacy) {
+    if (widget.leave.status == LeaveStatus.managementApprovedLegacy) {
       statusText = 'MANAGERS APPROVED';
-    } else if (leave.status == LeaveStatus.managersApproved) {
+    } else if (widget.leave.status == LeaveStatus.managersApproved) {
       statusText = 'MANAGERS APPROVED';
-    } else if (leave.status == LeaveStatus.sectionHeadForwarded) {
+    } else if (widget.leave.status == LeaveStatus.sectionHeadForwarded) {
       statusText = 'SECTION HEAD FORWARDED';
-    } else if (leave.status == LeaveStatus.managementApproved) {
+    } else if (widget.leave.status == LeaveStatus.managementApproved) {
       statusText = 'MANAGEMENT APPROVED';
     }
 
-    Color statusColor = _getStatusColor(context, leave.status);
+    Color statusColor = _getStatusColor(context, widget.leave.status);
 
     // Masking REMOVED
 
@@ -690,20 +770,26 @@ class _LeaveCard extends ConsumerWidget {
 
   bool _canAct() {
     // Section Head Actions
-    if (currentUser.role == AppRoles.sectionHead) {
-      return leave.currentStage == LeaveStage.sectionHeadReview ||
-          leave.currentStage == LeaveStage.finalization;
+    if (widget.currentUser.role == AppRoles.sectionHead) {
+      if (widget.leave.userId == widget.currentUser.id)
+        return false; // Prevent acting on own leave
+      return widget.leave.currentStage == LeaveStage.sectionHeadReview ||
+          widget.leave.currentStage == LeaveStage.finalization;
     }
     // Management Actions
     // Management / Upper Authority Actions
-    if (![AppRoles.staff, AppRoles.sectionHead].contains(currentUser.role)) {
+    if (![
+      AppRoles.staff,
+      AppRoles.sectionHead,
+    ].contains(widget.currentUser.role)) {
       // CANNOT act on own leaves
-      if (leave.userId == currentUser.id) return false;
+      if (widget.leave.userId == widget.currentUser.id) return false;
 
       // Can act on Management Review
-      if (leave.currentStage == LeaveStage.managementReview) return true;
+      if (widget.leave.currentStage == LeaveStage.managementReview) return true;
       // Can intervene on Section Head Review
-      if (leave.currentStage == LeaveStage.sectionHeadReview) return true;
+      if (widget.leave.currentStage == LeaveStage.sectionHeadReview)
+        return true;
     }
     return false;
   }
@@ -713,8 +799,8 @@ class _LeaveCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (currentUser.role == AppRoles.sectionHead) {
-      if (leave.currentStage == LeaveStage.sectionHeadReview) {
+    if (widget.currentUser.role == AppRoles.sectionHead) {
+      if (widget.leave.currentStage == LeaveStage.sectionHeadReview) {
         buttons = [
           _actionBtn(
             context,
@@ -752,7 +838,7 @@ class _LeaveCard extends ConsumerWidget {
             ),
           ),
         ];
-      } else if (leave.currentStage == LeaveStage.finalization) {
+      } else if (widget.leave.currentStage == LeaveStage.finalization) {
         buttons = [
           _actionBtn(
             context,
@@ -782,7 +868,7 @@ class _LeaveCard extends ConsumerWidget {
     } else if (![
       AppRoles.staff,
       AppRoles.sectionHead,
-    ].contains(currentUser.role)) {
+    ].contains(widget.currentUser.role)) {
       // Management / Upper Authority Buttons
       buttons = [
         _actionBtn(
@@ -818,107 +904,127 @@ class _LeaveCard extends ConsumerWidget {
     BuildContext context,
     String label,
     Color color,
-    VoidCallback onTap,
+    VoidCallback onPressed,
   ) {
     return ElevatedButton(
-      onPressed: onTap,
+      onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      child: Text(label),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
-  void _showActionDialog(
+  Future<void> _showActionDialog(
     BuildContext context,
     WidgetRef ref,
     LeaveAction action,
     String title,
-  ) {
+  ) async {
     final remarkController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool isLoading = false;
+    final scheme = Theme.of(context).colorScheme;
 
-    showDialog(
+    await showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text(title),
-            content: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: remarkController,
-                    decoration: const InputDecoration(
-                      labelText: 'Remark (Required)',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 2,
-                    validator: (v) =>
-                        v!.trim().isEmpty ? 'Remark is required' : null,
-                  ),
-                ],
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (action == LeaveAction.reject)
+              const Text(
+                'Please provide a reason for rejection.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
-            ),
-            actions: [
-              if (!isLoading)
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: remarkController,
+              decoration: InputDecoration(
+                labelText: 'Remark (Optional)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        if (formKey.currentState!.validate()) {
-                          setState(() => isLoading = true);
-                          try {
-                            await ref
-                                .read(leaveServiceProvider.notifier)
-                                .processAction(
-                                  leave: leave,
-                                  action: action,
-                                  actor: currentUser,
-                                  remark: remarkController.text.trim(),
-                                );
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Action Processed: ${action.name}',
-                                  ),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              setState(() => isLoading = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
-                              );
-                            }
-                          }
-                        }
-                      },
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Confirm'),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withOpacity(0.3),
               ),
-            ],
-          );
-        },
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (action == LeaveAction.reject &&
+                  remarkController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Reason is required for rejection'),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context); // Close dialog first
+
+              try {
+                final currentUser = await ref.read(userProfileProvider.future);
+                if (currentUser == null) return;
+
+                await ref
+                    .read(leaveServiceProvider.notifier)
+                    .processAction(
+                      leave: widget.leave,
+                      action: action,
+                      actor: currentUser,
+                      remark: remarkController.text.trim(),
+                    );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Action processed successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
       ),
     );
+  }
+
+  String _getLeaveTypeLabel(LeaveType type) {
+    switch (type) {
+      case LeaveType.fullDay:
+        return 'Full Day';
+      case LeaveType.halfDay:
+        return 'Half Day';
+      case LeaveType.lateArrival:
+        return 'Late Arrival';
+      case LeaveType.earlyDeparture:
+        return 'Early Departure';
+      case LeaveType.shortLeave:
+        return 'Short Leave';
+    }
   }
 }

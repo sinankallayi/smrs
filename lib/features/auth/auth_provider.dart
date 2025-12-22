@@ -145,6 +145,10 @@ class AuthController extends _$AuthController {
     await user.reauthenticateWithCredential(cred);
     await user.updatePassword(newPassword);
   }
+
+  Future<void> resetPassword(String email) async {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+  }
 }
 
 @riverpod

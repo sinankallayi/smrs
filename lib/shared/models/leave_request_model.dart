@@ -62,6 +62,19 @@ class TimelineEntry with _$TimelineEntry {
       _$TimelineEntryFromJson(json);
 }
 
+enum LeaveType {
+  @JsonValue('full_day')
+  fullDay,
+  @JsonValue('half_day')
+  halfDay,
+  @JsonValue('late_arrival')
+  lateArrival,
+  @JsonValue('early_departure')
+  earlyDeparture,
+  @JsonValue('short_leave')
+  shortLeave,
+}
+
 @freezed
 class LeaveRequestModel with _$LeaveRequestModel {
   const factory LeaveRequestModel({
@@ -70,6 +83,7 @@ class LeaveRequestModel with _$LeaveRequestModel {
     required String userName,
     required String userRole,
     String? userSection,
+    @Default(LeaveType.fullDay) LeaveType type, // Added Leave Type
     @TimestampConverter() required DateTime startDate,
     @TimestampConverter() required DateTime endDate,
     required String reason,

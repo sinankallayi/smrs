@@ -21,10 +21,17 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
   final _reasonController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  LeaveType _selectedType = LeaveType.fullDay; // Default to Full Day
   bool _isLoading = false;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // For single-day leave types, End Date might not be set by user, fallback to Start Date
+    if (_selectedType != LeaveType.fullDay && _startDate != null) {
+      _endDate = _startDate;
+    }
+
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(
         context,
@@ -70,6 +77,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
         userName: userDetails.name,
         userRole: userDetails.role,
         userSection: userDetails.section,
+        type: _selectedType, // Pass selected type
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
@@ -102,15 +110,16 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // For End Date, the earliest valid date is the selected Start Date (or today)
-    // For Start Date, the earliest valid date is today
+    // If non-full day, and picking End Date (which shouldn't happen via UI but for safety),
+    // force it to be same as start date or don't allow.
+    // Actually, for non-full day, we only let them pick Start Date.
+
     final firstDate = isStart ? today : (_startDate ?? today);
 
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart
           ? (_startDate ?? today)
-          // Ensure initialDate for End Date is valid (>= firstDate)
           : (_endDate != null && _endDate!.isAfter(firstDate)
                 ? _endDate!
                 : firstDate),
@@ -122,12 +131,17 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       setState(() {
         if (isStart) {
           _startDate = picked;
-          // If the new Start Date is after the existing End Date, reset End Date
-          if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-            _endDate = null;
+          // If non-full day, End Date must match Start Date
+          if (_selectedType != LeaveType.fullDay) {
+            _endDate = picked;
+          } else {
+            // If the new Start Date is after the existing End Date, reset End Date
+            if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+              _endDate = null;
+            }
           }
         } else {
-          // Double check to ensure End Date is not before Start Date
+          // Double check logic same as before
           if (_startDate != null && picked.isBefore(_startDate!)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -160,23 +174,79 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
+
+                  // Leave Type Selector
+                  DropdownButtonFormField<LeaveType>(
+                    value: _selectedType,
+                    decoration: InputDecoration(
+                      labelText: 'Leave Type',
+                      filled: true,
+                      fillColor: Colors.grey.withOpacity(0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: LeaveType.values.map((type) {
+                      String label;
+                      switch (type) {
+                        case LeaveType.fullDay:
+                          label = 'Full Day';
+                          break;
+                        case LeaveType.halfDay:
+                          label = 'Half Day';
+                          break;
+                        case LeaveType.lateArrival:
+                          label = 'Late Arrival';
+                          break;
+                        case LeaveType.earlyDeparture:
+                          label = 'Early Departure';
+                          break;
+                        case LeaveType.shortLeave:
+                          label = 'Short Leave';
+                          break;
+                      }
+                      return DropdownMenuItem(value: type, child: Text(label));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedType = val;
+                          if (_selectedType != LeaveType.fullDay &&
+                              _startDate != null) {
+                            // If switching to single-day type, ensure End Date matches Start Date
+                            _endDate = _startDate;
+                          } else if (_selectedType == LeaveType.fullDay &&
+                              _endDate == null &&
+                              _startDate != null) {
+                            // Optional: reset end date to null if switching back to full day?
+                            // Or keep it as is. Keeping it as is is safer.
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   Row(
                     children: [
                       Expanded(
                         child: _DateButton(
-                          label: 'Start Date',
+                          label: 'Start Date', // Or just 'Date' for single day
                           date: _startDate,
                           onTap: () => _pickDate(true),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _DateButton(
-                          label: 'End Date',
-                          date: _endDate,
-                          onTap: () => _pickDate(false),
+                      if (_selectedType == LeaveType.fullDay) ...[
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _DateButton(
+                            label: 'End Date',
+                            date: _endDate,
+                            onTap: () => _pickDate(false),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),

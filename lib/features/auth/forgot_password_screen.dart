@@ -1,32 +1,26 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../shared/widgets/glass_container.dart';
 import 'auth_provider.dart';
-import 'forgot_password_screen.dart';
 import 'widgets/grid_painter.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
   bool _isLoading = false;
-  bool _isObscured = true;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -41,24 +35,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _resetPassword() async {
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
     try {
       await ref
           .read(authControllerProvider.notifier)
-          .signIn(
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
-          );
-      // Navigation is handled by router redirect
-    } catch (e) {
+          .resetPassword(_emailController.text.trim());
+
+      _showSuccess('Password reset link sent! Check your email.');
       if (mounted) {
-        _showError("Oops! ${e.toString().split(']').last.trim()}");
+        Navigator.pop(context);
       }
+    } catch (e) {
+      _showError(
+        "Failed to send reset email: ${e.toString().split(']').last.trim()}",
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -69,7 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background - Professional Dark Gradient
+          // Background - Matching Login Screen
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -85,8 +89,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
 
-          // Subtle Tech overlay pattern
+          // Tech overlay pattern
           Positioned.fill(child: CustomPaint(painter: GridPainter())),
+
+          // Back Button
+          Positioned(
+            top: 40,
+            left: 16,
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+            ),
+          ),
 
           Center(
             child: SingleChildScrollView(
@@ -94,7 +108,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 40), // Top spacing
                   GlassContainer(
                     width: 400,
                     opacity: 0.2,
@@ -104,13 +117,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
-                            LucideIcons.shieldCheck,
+                            LucideIcons.lock,
                             size: 48,
                             color: Colors.white,
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            'SMRS Login',
+                            'Reset Password',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -119,7 +132,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Enter your credentials to continue',
+                            'Enter your email to receive a reset link',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.white70,
@@ -142,53 +156,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: const TextStyle(color: Colors.white),
                             validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _isObscured,
-                            decoration: InputDecoration(
-                              hintText: 'Password',
-                              prefixIcon: const Icon(
-                                LucideIcons.lock,
-                                color: Colors.white70,
-                              ),
-                              suffixIcon: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isObscured = !_isObscured),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  transitionBuilder: (child, anim) =>
-                                      FadeTransition(
-                                        opacity: anim,
-                                        child: child,
-                                      ),
-                                  child: Icon(
-                                    _isObscured
-                                        ? LucideIcons.eye
-                                        : LucideIcons.eyeOff,
-                                    key: ValueKey<bool>(_isObscured),
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white10,
-                              border: InputBorder.none,
-                              hintStyle: const TextStyle(color: Colors.white60),
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                            validator: (v) => v!.isEmpty ? 'Required' : null,
-                          ),
                           const SizedBox(height: 32),
                           SizedBox(
                             width: double.infinity,
                             height: 50,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
+                              onPressed: _isLoading ? null : _resetPassword,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor:
-                                    Colors.blueGrey[900], // Updated color
+                                foregroundColor: Colors.blueGrey[900],
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -196,31 +172,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: _isLoading
                                   ? const CircularProgressIndicator()
                                   : const Text(
-                                      'Sign In',
+                                      'Send Reset Link',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ForgotPasswordScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Forgot Password?',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
-                              ),
                             ),
                           ),
                           const SizedBox(height: 16),

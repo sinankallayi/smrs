@@ -76,7 +76,8 @@ class _ConfigList extends ConsumerWidget {
                 (role) =>
                     role != AppRoles.superAdmin &&
                     role != AppRoles.sectionHead &&
-                    role != AppRoles.staff,
+                    role != AppRoles.staff &&
+                    role != AppRoles.management,
               )
               .toList();
         }
@@ -100,7 +101,13 @@ class _ConfigList extends ConsumerWidget {
               child: items.isEmpty
                   ? const Center(child: Text('No items found'))
                   : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 16,
+                        bottom: 100,
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: items.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {

@@ -32,13 +32,14 @@ class OfficeHistoryScreen extends ConsumerWidget {
         final bool isSectionHead = user.role == AppRoles.sectionHead;
 
         // Calculate tab count dynamically
-        // 1. My History (Always)
+        // 1. My History (Unless Management)
         // 2. Staff (Always)
         // 3. Section Heads (Only if NOT Section Head)
         // 4. Managers (Only if Management)
-        int tabCount = 2; // My History + Staff
-        if (!isSectionHead) tabCount++;
-        if (isManagementRole) tabCount++;
+        int tabCount = 1; // Staff (Always)
+        if (!isManagementRole) tabCount++; // My History
+        if (!isSectionHead) tabCount++; // Section Heads
+        if (isManagementRole) tabCount++; // Managers
 
         return Scaffold(
           appBar: AppBar(title: const Text('Office History')),
@@ -50,7 +51,8 @@ class OfficeHistoryScreen extends ConsumerWidget {
                   TabBar(
                     isScrollable: true, // Allow scrolling if tabs don't fit
                     tabs: [
-                      Tab(text: 'My History'.toTitleCase()),
+                      if (!isManagementRole)
+                        Tab(text: 'My History'.toTitleCase()),
                       Tab(text: 'Staff'.toTitleCase()),
                       if (!isSectionHead)
                         Tab(text: 'Section Heads'.toTitleCase()),
@@ -61,11 +63,12 @@ class OfficeHistoryScreen extends ConsumerWidget {
                     child: TabBarView(
                       children: [
                         // 0. My History
-                        LeaveListWidget(
-                          user: user,
-                          filterStages: null, // History
-                          onlyCurrentUser: true, // Only MY leaves
-                        ),
+                        if (!isManagementRole)
+                          LeaveListWidget(
+                            user: user,
+                            filterStages: null, // History
+                            onlyCurrentUser: true, // Only MY leaves
+                          ),
 
                         // 1. Staff History (All Stages)
                         LeaveListWidget(

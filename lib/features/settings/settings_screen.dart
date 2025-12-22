@@ -87,6 +87,7 @@ class SettingsScreen extends ConsumerWidget {
                     // Office History Link (For Managers, Management, Section Heads)
                     if (![
                       AppRoles.staff,
+                      AppRoles.superAdmin,
                     ].contains(ref.read(userProfileProvider).value?.role)) ...[
                       const Divider(),
                       ListTile(

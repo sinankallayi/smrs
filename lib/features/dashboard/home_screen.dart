@@ -55,15 +55,30 @@ class HomeScreen extends ConsumerWidget {
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            Text(
-                              user.role.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                            ),
+                            if (user.role == AppRoles.sectionHead &&
+                                user.section != null) ...[
+                              Text(
+                                user.section!.toUpperCase(),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                            ] else ...[
+                              Text(
+                                user.role.toUpperCase(),
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.8),
+                                    ),
+                              ),
+                            ],
                           ],
                         ),
                         CircleAvatar(

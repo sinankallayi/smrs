@@ -329,6 +329,7 @@ mixin _$LeaveRequestModel {
   String get userName => throw _privateConstructorUsedError;
   String get userRole => throw _privateConstructorUsedError;
   String? get userSection => throw _privateConstructorUsedError;
+  LeaveType get type => throw _privateConstructorUsedError; // Added Leave Type
   @TimestampConverter()
   DateTime get startDate => throw _privateConstructorUsedError;
   @TimestampConverter()
@@ -365,6 +366,7 @@ abstract class $LeaveRequestModelCopyWith<$Res> {
     String userName,
     String userRole,
     String? userSection,
+    LeaveType type,
     @TimestampConverter() DateTime startDate,
     @TimestampConverter() DateTime endDate,
     String reason,
@@ -396,6 +398,7 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
     Object? userName = null,
     Object? userRole = null,
     Object? userSection = freezed,
+    Object? type = null,
     Object? startDate = null,
     Object? endDate = null,
     Object? reason = null,
@@ -427,6 +430,10 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
                 ? _value.userSection
                 : userSection // ignore: cast_nullable_to_non_nullable
                       as String?,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as LeaveType,
             startDate: null == startDate
                 ? _value.startDate
                 : startDate // ignore: cast_nullable_to_non_nullable
@@ -480,6 +487,7 @@ abstract class _$$LeaveRequestModelImplCopyWith<$Res>
     String userName,
     String userRole,
     String? userSection,
+    LeaveType type,
     @TimestampConverter() DateTime startDate,
     @TimestampConverter() DateTime endDate,
     String reason,
@@ -510,6 +518,7 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
     Object? userName = null,
     Object? userRole = null,
     Object? userSection = freezed,
+    Object? type = null,
     Object? startDate = null,
     Object? endDate = null,
     Object? reason = null,
@@ -541,6 +550,10 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
             ? _value.userSection
             : userSection // ignore: cast_nullable_to_non_nullable
                   as String?,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as LeaveType,
         startDate: null == startDate
             ? _value.startDate
             : startDate // ignore: cast_nullable_to_non_nullable
@@ -587,6 +600,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     required this.userName,
     required this.userRole,
     this.userSection,
+    this.type = LeaveType.fullDay,
     @TimestampConverter() required this.startDate,
     @TimestampConverter() required this.endDate,
     required this.reason,
@@ -610,6 +624,10 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
   final String userRole;
   @override
   final String? userSection;
+  @override
+  @JsonKey()
+  final LeaveType type;
+  // Added Leave Type
   @override
   @TimestampConverter()
   final DateTime startDate;
@@ -644,7 +662,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
 
   @override
   String toString() {
-    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, startDate: $startDate, endDate: $endDate, reason: $reason, status: $status, currentStage: $currentStage, appliedAt: $appliedAt, timeline: $timeline, isActive: $isActive)';
+    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, type: $type, startDate: $startDate, endDate: $endDate, reason: $reason, status: $status, currentStage: $currentStage, appliedAt: $appliedAt, timeline: $timeline, isActive: $isActive)';
   }
 
   @override
@@ -660,6 +678,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
                 other.userRole == userRole) &&
             (identical(other.userSection, userSection) ||
                 other.userSection == userSection) &&
+            (identical(other.type, type) || other.type == type) &&
             (identical(other.startDate, startDate) ||
                 other.startDate == startDate) &&
             (identical(other.endDate, endDate) || other.endDate == endDate) &&
@@ -683,6 +702,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     userName,
     userRole,
     userSection,
+    type,
     startDate,
     endDate,
     reason,
@@ -717,6 +737,7 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
     required final String userName,
     required final String userRole,
     final String? userSection,
+    final LeaveType type,
     @TimestampConverter() required final DateTime startDate,
     @TimestampConverter() required final DateTime endDate,
     required final String reason,
@@ -740,6 +761,8 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
   String get userRole;
   @override
   String? get userSection;
+  @override
+  LeaveType get type; // Added Leave Type
   @override
   @TimestampConverter()
   DateTime get startDate;

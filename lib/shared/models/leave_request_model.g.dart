@@ -36,6 +36,9 @@ _$LeaveRequestModelImpl _$$LeaveRequestModelImplFromJson(
   userName: json['userName'] as String,
   userRole: json['userRole'] as String,
   userSection: json['userSection'] as String?,
+  type:
+      $enumDecodeNullable(_$LeaveTypeEnumMap, json['type']) ??
+      LeaveType.fullDay,
   startDate: const TimestampConverter().fromJson(
     json['startDate'] as Timestamp,
   ),
@@ -62,6 +65,7 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'userName': instance.userName,
   'userRole': instance.userRole,
   'userSection': instance.userSection,
+  'type': _$LeaveTypeEnumMap[instance.type]!,
   'startDate': const TimestampConverter().toJson(instance.startDate),
   'endDate': const TimestampConverter().toJson(instance.endDate),
   'reason': instance.reason,
@@ -70,6 +74,14 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'appliedAt': const TimestampConverter().toJson(instance.appliedAt),
   'timeline': instance.timeline,
   'isActive': instance.isActive,
+};
+
+const _$LeaveTypeEnumMap = {
+  LeaveType.fullDay: 'full_day',
+  LeaveType.halfDay: 'half_day',
+  LeaveType.lateArrival: 'late_arrival',
+  LeaveType.earlyDeparture: 'early_departure',
+  LeaveType.shortLeave: 'short_leave',
 };
 
 const _$LeaveStatusEnumMap = {

@@ -5,10 +5,23 @@ firebase deploy --only firestore:rules --project smrs-77bed
 firebase deploy --only firestore:indexes --project smrs-77bed
 
 flutter build apk --release
-
 flutter pub run build_runner build --delete-conflicting-outputs
+
 
 dart run build_runner build --delete-conflicting-outputs
 
 
+
+
+
+
+
+#auto checked
+
 grep -n "_LeaveList" d:\Antigravity\Flutter\smrs\lib\features\leaves\leave_list_screen.dart
+flutter test test/widget_test.dart
+flutter test test/widget_test.dart -v
+
+flutter analyze
+
+dart fix --apply
