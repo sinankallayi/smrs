@@ -13,14 +13,46 @@ class AuthController extends _$AuthController {
     return FirebaseAuth.instance.authStateChanges();
   }
 
-  Future<void> signIn(String email, String password) async {
-    // 1. Sign in with Firebase Auth
+  Future<void> signIn(String identifier, String password) async {
+    String email = identifier;
+
+    // 1. Check if identifier is an email
+    if (!identifier.contains('@')) {
+      // It's likely an Employee ID, look up the email
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('employeeId', isEqualTo: identifier)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        email = querySnapshot.docs.first.data()['email'] as String;
+      } else {
+        // Fallback: Check legacy staffId just in case
+        final legacyQuery = await FirebaseFirestore.instance
+            .collection('users')
+            .where('staffId', isEqualTo: identifier)
+            .limit(1)
+            .get();
+
+        if (legacyQuery.docs.isNotEmpty) {
+          email = legacyQuery.docs.first.data()['email'] as String;
+        } else {
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+            message: 'No user found with this Employee ID.',
+          );
+        }
+      }
+    }
+
+    // 2. Sign in with Firebase Auth
     final result = await FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    // 2. Fetch user status from Firestore
+    // 3. Fetch user status from Firestore
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(result.user!.uid)

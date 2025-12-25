@@ -129,9 +129,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             decoration: const InputDecoration(
-                              hintText: 'Email',
+                              hintText: 'Email or Employee ID',
                               prefixIcon: Icon(
-                                LucideIcons.mail,
+                                LucideIcons.user,
                                 color: Colors.white70,
                               ),
                               filled: true,
