@@ -79,6 +79,18 @@ class HomeScreen extends ConsumerWidget {
                                     ),
                               ),
                             ],
+                            if (user.employeeId != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'ID: ${user.employeeId}',
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.8),
+                                    ),
+                              ),
+                            ],
                           ],
                         ),
                         CircleAvatar(
