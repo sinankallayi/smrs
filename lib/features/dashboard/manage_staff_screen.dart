@@ -90,7 +90,8 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
 
             return user.name.toLowerCase().contains(_searchQuery) ||
                 user.email.toLowerCase().contains(_searchQuery) ||
-                (user.staffId?.toLowerCase().contains(_searchQuery) ?? false);
+                (user.employeeId?.toLowerCase().contains(_searchQuery) ??
+                    false);
           }).toList();
 
           return Column(
@@ -284,8 +285,8 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
                                 title: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (user.staffId != null &&
-                                        user.staffId!.isNotEmpty)
+                                    if (user.employeeId != null &&
+                                        user.employeeId!.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.only(
                                           bottom: 4.0,
@@ -304,7 +305,7 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
                                             ),
                                           ),
                                           child: Text(
-                                            'ID: ${user.staffId}',
+                                            'ID: ${user.employeeId}',
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,

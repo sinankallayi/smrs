@@ -20,7 +20,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _staffIdController = TextEditingController();
+  final _employeeIdController = TextEditingController();
 
   String? _selectedRole;
   String? _selectedSection;
@@ -28,13 +28,25 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   bool _isActive = true;
   bool _initialized = false;
 
+  bool get _shouldShowEmployeeId {
+    if (_selectedRole == null) return false;
+    // Show for all roles that are NOT Super Admin
+    // Based on user request: management, managers (md/exd/hr), sectionhead, staff
+    return _selectedRole != AppRoles.superAdmin;
+  }
+
   @override
   void initState() {
     super.initState();
     if (widget.userToEdit != null) {
       _nameController.text = widget.userToEdit!.name;
       _emailController.text = widget.userToEdit!.email;
-      _staffIdController.text = widget.userToEdit!.staffId ?? '';
+      // Note: userToEdit.employeeId will rely on generated code update
+      // If build_runner hasn't run yet, this might show an error in IDE but is correct code.
+      // We can use dynamic dispatch or just wait for build.
+      // For safety during transition, we might try to read staffId if employeeId is missing?
+      // But we renamed the field in UserModel, so we must wait for build.
+      _employeeIdController.text = widget.userToEdit!.employeeId ?? '';
       _isActive = widget.userToEdit!.isActive;
       _selectedRole = widget.userToEdit!.role;
       _selectedSection = widget.userToEdit!.section;
@@ -79,13 +91,13 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Moved Staff ID to top as requested
-                      if (_selectedRole == AppRoles.staff) ...[
+                      // Employee ID Field
+                      if (_shouldShowEmployeeId) ...[
                         TextFormField(
-                          controller: _staffIdController,
+                          controller: _employeeIdController,
                           style: TextStyle(color: textColor),
                           decoration: InputDecoration(
-                            labelText: 'Staff ID',
+                            labelText: 'Employee ID',
                             labelStyle: TextStyle(color: hintColor),
                             filled: true,
                             fillColor: fillColor,
@@ -95,9 +107,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                             ),
                           ),
                           validator: (v) {
-                            if (_selectedRole == AppRoles.staff &&
+                            if (_shouldShowEmployeeId &&
                                 (v == null || v.isEmpty)) {
-                              return 'Required for Staff';
+                              return 'Required';
                             }
                             return null;
                           },
@@ -361,9 +373,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               name: _nameController.text.trim(),
               role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
-              staffId: _staffIdController.text.trim().isEmpty
+              employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
-                  : _staffIdController.text.trim(),
+                  : _employeeIdController.text.trim(),
             );
       } else {
         await ref
@@ -373,9 +385,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               name: _nameController.text.trim(),
               role: _selectedRole!, // Safe now due to check above
               section: _selectedSection,
-              staffId: _staffIdController.text.trim().isEmpty
+              employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
-                  : _staffIdController.text.trim(),
+                  : _employeeIdController.text.trim(),
               isActive: _isActive,
             );
       }

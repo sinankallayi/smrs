@@ -32,6 +32,10 @@ class AppSections {
   static const List<String> values = [bakery, fancy, vegetable];
 }
 
+Object? _readEmployeeId(Map json, String key) {
+  return json['employeeId'] ?? json['staffId'];
+}
+
 @freezed
 class UserModel with _$UserModel {
   const factory UserModel({
@@ -40,7 +44,7 @@ class UserModel with _$UserModel {
     required String name,
     required String role, // Changed from UserRole
     String? section, // Changed from UserSection
-    String? staffId,
+    @JsonKey(readValue: _readEmployeeId) String? employeeId,
     String? createdBy,
     @Default(true) bool isActive,
   }) = _UserModel;

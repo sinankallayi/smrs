@@ -59,7 +59,7 @@ class AuthController extends _$AuthController {
       name: name,
       role: role,
       section: section,
-      staffId:
+      employeeId:
           null, // Register is usually for self-register, maybe we don't expose staffId here or make it optional? Assuming null for now or need to add it to params.
     );
 
@@ -75,11 +75,11 @@ class AuthController extends _$AuthController {
     required String name,
     required String role,
     String? section,
-    String? staffId,
+    String? employeeId,
   }) async {
-    if (staffId != null) {
-      final isUnique = await checkStaffIdUnique(staffId);
-      if (!isUnique) throw Exception('Staff ID already exists');
+    if (employeeId != null) {
+      final isUnique = await checkEmployeeIdUnique(employeeId);
+      if (!isUnique) throw Exception('Employee ID already exists');
     }
     // Connect to a secondary Firebase app to create user without logging out the admin
     FirebaseApp tempApp = await Firebase.initializeApp(
@@ -102,7 +102,7 @@ class AuthController extends _$AuthController {
         name: name,
         role: role,
         section: section,
-        staffId: staffId,
+        employeeId: employeeId,
       );
 
       await FirebaseFirestore.instance
@@ -119,32 +119,25 @@ class AuthController extends _$AuthController {
     String? name,
     String? role,
     String? section,
-    String? staffId,
+    String? employeeId,
     bool? isActive,
   }) async {
     final Map<String, dynamic> data = {};
     if (name != null) data['name'] = name;
     if (role != null) data['role'] = role;
-    if (staffId != null) {
-      // Check uniqueness only if it's different from current?
-      // Ideally we should check if it's being changed.
-      // For simplicity, we check if it exists and current user isn't the owner.
-      // But here we might not have the old value easily without fetching.
-      // Let's assume the caller handles this check or we check it blindly.
-      // Better: check if unique. If not unique, we need to know if it belongs to THIS user.
-      final isUnique = await checkStaffIdUnique(staffId, excludeUid: uid);
-      if (!isUnique) throw Exception('Staff ID already exists');
-      data['staffId'] = staffId;
+    if (employeeId != null) {
+      final isUnique = await checkEmployeeIdUnique(employeeId, excludeUid: uid);
+      if (!isUnique) throw Exception('Employee ID already exists');
+      data['employeeId'] = employeeId;
+      // Also update or set staffId for backward compatibility?
+      // User asked to CHANGE staffId into employeeId.
+      // We can just write employeeId. Old staffId fields remain as legacy.
     }
     if (section != null) {
       data['section'] = section;
     } else if (role != AppRoles.sectionHead && role != null) {
       // If role changed to non-sectionHead, remove section
       data['section'] = FieldValue.delete();
-    }
-
-    if (role != null && role != AppRoles.staff) {
-      data['staffId'] = FieldValue.delete();
     }
 
     if (isActive != null) {
@@ -174,20 +167,39 @@ class AuthController extends _$AuthController {
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
   }
 
-  Future<bool> checkStaffIdUnique(String staffId, {String? excludeUid}) async {
-    final query = await FirebaseFirestore.instance
+  Future<bool> checkEmployeeIdUnique(
+    String employeeId, {
+    String? excludeUid,
+  }) async {
+    // Check against 'employeeId' field
+    final query1 = await FirebaseFirestore.instance
         .collection('users')
-        .where('staffId', isEqualTo: staffId)
+        .where('employeeId', isEqualTo: employeeId)
         .get();
 
-    if (query.docs.isEmpty) return true;
-
-    if (excludeUid != null) {
-      // If we found a doc, check if it's the same user
-      return query.docs.first.id == excludeUid;
+    if (query1.docs.isNotEmpty) {
+      if (excludeUid != null && query1.docs.first.id == excludeUid) {
+        // Same user, ignore
+      } else {
+        return false;
+      }
     }
 
-    return false;
+    // Check against 'staffId' field (legacy)
+    final query2 = await FirebaseFirestore.instance
+        .collection('users')
+        .where('staffId', isEqualTo: employeeId)
+        .get();
+
+    if (query2.docs.isNotEmpty) {
+      if (excludeUid != null && query2.docs.first.id == excludeUid) {
+        // Same user, ignore
+      } else {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 

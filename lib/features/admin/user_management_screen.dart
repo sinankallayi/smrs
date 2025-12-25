@@ -100,11 +100,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           Text(
                             '${user.email} • ${user.section != null ? user.section!.toUpperCase() : user.role.toUpperCase()}',
                           ),
-                          if (user.staffId != null)
+                          if (user.employeeId != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                'Staff ID: ${user.staffId}',
+                                'Emp ID: ${user.employeeId}',
                                 style: TextStyle(
                                   color: Theme.of(context).primaryColor,
                                   fontWeight: FontWeight.bold,
