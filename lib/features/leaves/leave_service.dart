@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../shared/models/leave_request_model.dart';
 import '../../shared/models/user_model.dart';
+import '../configuration/leave_flow_service.dart';
 
 part 'leave_service.g.dart';
 
@@ -17,42 +18,68 @@ class LeaveService extends _$LeaveService {
     Query<Map<String, dynamic>> query = _leavesColl;
 
     if (user.role == AppRoles.staff) {
+      // Optimization for staff: just their own leaves
       query = query.where('userId', isEqualTo: user.id);
     } else if (user.role == AppRoles.sectionHead) {
-      // Section Head: Leaves from their section
-      if (user.section != null) {
-        query = query.where('userSection', isEqualTo: user.section);
-      }
+      // Section Heads: OWN leaves OR (Relevant leaves AND same section)
+      // This strict check prevents seeing leaves from other sections even if 'sectionHead' is in relevantRoles
+      query = query.where(
+        Filter.or(
+          Filter('userId', isEqualTo: user.id),
+          Filter.and(
+            Filter('relevantRoles', arrayContains: user.role),
+            Filter('userSection', isEqualTo: user.section),
+          ),
+        ),
+      );
     } else {
-      // Catch-all for Managers/Upper Authority (Anyone not Staff or Section Head)
-      // Fetch ALL requests to support simultaneous visibility (or history).
-      // Client-side filtering will handle specific views/tabs.
+      // For others (Management, etc), show leaves they created OR leaves relevant to them
+      query = query.where(
+        Filter.or(
+          Filter('userId', isEqualTo: user.id),
+          Filter('relevantRoles', arrayContains: user.role),
+        ),
+      );
     }
 
-    // Note: For complex multi-field queries, indexes will be needed.
     return query.orderBy('appliedAt', descending: true).snapshots().map((qs) {
-      final leaves = qs.docs
+      return qs.docs
           .map((doc) => LeaveRequestModel.fromJson(doc.data()))
           .toList();
-
-      // Additional In-Memory Filtering for Security/View Logic
-      if (user.role == AppRoles.sectionHead) {
-        return leaves.where((l) => l.userSection == user.section).toList();
-      }
-      return leaves;
     });
   }
 
   Future<void> createLeave(LeaveRequestModel leave) async {
-    // If a Manager/Upper Authority requests leave, route directly to Management Review
-    // Logic: Anyone not Staff implies Upper Authority (including Section Heads)
-    if (leave.userRole != AppRoles.staff) {
-      leave = leave.copyWith(
-        currentStage: LeaveStage.managementReview,
-        status: LeaveStatus.forwarded,
+    // Fetch dynamic initial state
+    final flowService = ref.read(leaveFlowServiceProvider.notifier);
+    final initialState = await flowService.getInitialState(leave.userRole);
+
+    LeaveRequestModel newLeave = leave;
+
+    if (initialState != null) {
+      // Dynamic Flow
+      newLeave = leave.copyWith(
+        currentApproverRoles: initialState.approverRoles,
+        currentViewerRoles: initialState.viewerRoles,
+        relevantRoles: [
+          ...initialState.approverRoles,
+          ...initialState.viewerRoles,
+        ].toSet().toList(),
+        currentStepIndex: initialState.stepIndex,
+        currentStepName: initialState.stepName,
+        status: LeaveStatus.pending,
       );
+    } else {
+      // Fallback to legacy logic if no flow configured
+      if (leave.userRole != AppRoles.staff) {
+        newLeave = leave.copyWith(
+          currentStage: LeaveStage.managementReview,
+          status: LeaveStatus.forwarded,
+        );
+      }
     }
-    await _leavesColl.doc(leave.id).set(leave.toJson());
+
+    await _leavesColl.doc(newLeave.id).set(newLeave.toJson());
   }
 
   Future<void> processAction({
@@ -62,69 +89,42 @@ class LeaveService extends _$LeaveService {
     required String remark,
   }) async {
     LeaveStatus newStatus = leave.status;
-    LeaveStage newStage = leave.currentStage;
 
-    bool isUpperAuthority = ![
-      AppRoles.staff,
-      AppRoles.sectionHead,
-    ].contains(actor.role);
+    // Dynamic Logic
+    List<String> nextApprovers = leave.currentApproverRoles;
+    List<String> nextViewers = leave.currentViewerRoles;
+    int nextStepIndex = leave.currentStepIndex;
+    String? nextStepName = leave.currentStepName;
 
-    // State Machine Logic
-    if (leave.currentStage == LeaveStage.sectionHeadReview) {
-      // Step 2: Section Head Review (OR Upper Authority Intervention)
+    if (action == LeaveAction.reject) {
+      newStatus = LeaveStatus.rejected;
+      // nextApprovers = []; // STOP: Don't clear. Allow others to act (Voting/Opinion).
+    } else if (action == LeaveAction.approve || action == LeaveAction.forward) {
+      // Calculate next step
+      final flowService = ref.read(leaveFlowServiceProvider.notifier);
+      final nextState = await flowService.getNextState(
+        leave.userRole,
+        leave.currentStepIndex,
+      );
 
-      if (isUpperAuthority) {
-        if (action == LeaveAction.reject) {
-          // Upper authority REJECTED
-          // Mark as rejected, stage completed.
-          newStatus = LeaveStatus.rejected;
-          newStage = LeaveStage.completed;
-        } else if (action == LeaveAction.approve) {
-          // Upper authority APPROVED
-          if (actor.role == AppRoles.management) {
-            newStatus = LeaveStatus.managementApproved;
-          } else {
-            // Managers (MD, EXD, HR)
-            newStatus = LeaveStatus.managersApproved;
-          }
-          newStage = LeaveStage.finalization;
+      if (nextState != null) {
+        // Move to next step
+        nextApprovers = nextState.approverRoles;
+        nextViewers = nextState.viewerRoles;
+        nextStepIndex = nextState.stepIndex;
+        nextStepName = nextState.stepName;
+
+        newStatus = LeaveStatus.forwarded;
+        if (actor.role == AppRoles.sectionHead) {
+          newStatus = LeaveStatus.sectionHeadForwarded;
+        } else if (actor.role == AppRoles.management) {
+          // Logic for intermediate management steps?
         }
       } else {
-        // Section Head Logic
-        if (action == LeaveAction.reject) {
-          newStatus = LeaveStatus.rejected;
-          newStage = LeaveStage.completed;
-        } else if (action == LeaveAction.forward) {
-          // Changed from 'forwarded' to 'sectionHeadForwarded' as per request
-          newStatus = LeaveStatus.sectionHeadForwarded;
-          newStage = LeaveStage.managementReview;
-        } else if (action == LeaveAction.approve) {
-          newStatus = LeaveStatus.approved;
-          newStage = LeaveStage.completed;
-        }
-      }
-    } else if (leave.currentStage == LeaveStage.managementReview) {
-      // Step 3: Management Review
-      if (action == LeaveAction.reject) {
-        newStatus = LeaveStatus.rejected;
-        newStage = LeaveStage.completed;
-      } else if (action == LeaveAction.approve) {
-        if (actor.role == AppRoles.management) {
-          newStatus = LeaveStatus.managementApproved;
-        } else {
-          newStatus = LeaveStatus.managersApproved;
-        }
-        newStage = LeaveStage.finalization;
-      }
-    } else if (leave.currentStage == LeaveStage.finalization) {
-      // Step 4: Finalization
-      if (action == LeaveAction.reject) {
-        newStatus = LeaveStatus.rejected;
-        newStage = LeaveStage.completed;
-      } else if (action == LeaveAction.approve) {
-        // "Finalize"
+        // End of workflow -> Approved
         newStatus = LeaveStatus.approved;
-        newStage = LeaveStage.completed;
+        // Clear approvers as no further action needed
+        nextApprovers = [];
       }
     }
 
@@ -142,15 +142,27 @@ class LeaveService extends _$LeaveService {
 
     final updatedLeave = leave.copyWith(
       status: newStatus,
-      currentStage: newStage,
       timeline: updatedTimeline,
+      currentApproverRoles: nextApprovers,
+      currentViewerRoles: nextViewers,
+      relevantRoles: {
+        ...leave.relevantRoles,
+        ...nextApprovers,
+        ...nextViewers,
+      }.toList(),
+      currentStepIndex: nextStepIndex,
+      currentStepName: nextStepName,
     );
 
-    // Serialize explicitly to ensure nested objects are converted
+    // Convert to JSON and save
+    // Ensure all fields are valid for Firestore
     final json = updatedLeave.toJson();
-    json['timeline'] = updatedTimeline.map((e) => e.toJson()).toList();
 
-    await _leavesColl.doc(leave.id).update(json);
+    // Explicitly serialize nested objects (TimelineEntry) to Maps because generated code might miss this
+    // without explicitToJson: true (which causes conflicts).
+    json['timeline'] = updatedLeave.timeline.map((e) => e.toJson()).toList();
+
+    await _leavesColl.doc(leave.id).set(json, SetOptions(merge: true));
   }
 
   Future<void> deleteLeave(String leaveId) async {

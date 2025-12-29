@@ -338,7 +338,14 @@ mixin _$LeaveRequestModel {
   LeaveStatus get status => throw _privateConstructorUsedError;
   LeaveStage get currentStage => throw _privateConstructorUsedError;
   @TimestampConverter()
-  DateTime get appliedAt => throw _privateConstructorUsedError; // Approval Timeline
+  DateTime get appliedAt => throw _privateConstructorUsedError; // Dynamic Workflow State
+  List<String> get currentApproverRoles => throw _privateConstructorUsedError;
+  List<String> get currentViewerRoles => throw _privateConstructorUsedError;
+  int get currentStepIndex => throw _privateConstructorUsedError;
+  String? get currentStepName => throw _privateConstructorUsedError;
+  List<String> get relevantRoles =>
+      throw _privateConstructorUsedError; // Combined approvers + viewers for Firestore query
+  // Approval Timeline
   List<TimelineEntry> get timeline =>
       throw _privateConstructorUsedError; // Metadata
   bool get isActive => throw _privateConstructorUsedError;
@@ -373,6 +380,11 @@ abstract class $LeaveRequestModelCopyWith<$Res> {
     LeaveStatus status,
     LeaveStage currentStage,
     @TimestampConverter() DateTime appliedAt,
+    List<String> currentApproverRoles,
+    List<String> currentViewerRoles,
+    int currentStepIndex,
+    String? currentStepName,
+    List<String> relevantRoles,
     List<TimelineEntry> timeline,
     bool isActive,
   });
@@ -405,6 +417,11 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
     Object? status = null,
     Object? currentStage = null,
     Object? appliedAt = null,
+    Object? currentApproverRoles = null,
+    Object? currentViewerRoles = null,
+    Object? currentStepIndex = null,
+    Object? currentStepName = freezed,
+    Object? relevantRoles = null,
     Object? timeline = null,
     Object? isActive = null,
   }) {
@@ -458,6 +475,26 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
                 ? _value.appliedAt
                 : appliedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            currentApproverRoles: null == currentApproverRoles
+                ? _value.currentApproverRoles
+                : currentApproverRoles // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            currentViewerRoles: null == currentViewerRoles
+                ? _value.currentViewerRoles
+                : currentViewerRoles // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            currentStepIndex: null == currentStepIndex
+                ? _value.currentStepIndex
+                : currentStepIndex // ignore: cast_nullable_to_non_nullable
+                      as int,
+            currentStepName: freezed == currentStepName
+                ? _value.currentStepName
+                : currentStepName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            relevantRoles: null == relevantRoles
+                ? _value.relevantRoles
+                : relevantRoles // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
             timeline: null == timeline
                 ? _value.timeline
                 : timeline // ignore: cast_nullable_to_non_nullable
@@ -494,6 +531,11 @@ abstract class _$$LeaveRequestModelImplCopyWith<$Res>
     LeaveStatus status,
     LeaveStage currentStage,
     @TimestampConverter() DateTime appliedAt,
+    List<String> currentApproverRoles,
+    List<String> currentViewerRoles,
+    int currentStepIndex,
+    String? currentStepName,
+    List<String> relevantRoles,
     List<TimelineEntry> timeline,
     bool isActive,
   });
@@ -525,6 +567,11 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
     Object? status = null,
     Object? currentStage = null,
     Object? appliedAt = null,
+    Object? currentApproverRoles = null,
+    Object? currentViewerRoles = null,
+    Object? currentStepIndex = null,
+    Object? currentStepName = freezed,
+    Object? relevantRoles = null,
     Object? timeline = null,
     Object? isActive = null,
   }) {
@@ -578,6 +625,26 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
             ? _value.appliedAt
             : appliedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        currentApproverRoles: null == currentApproverRoles
+            ? _value._currentApproverRoles
+            : currentApproverRoles // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        currentViewerRoles: null == currentViewerRoles
+            ? _value._currentViewerRoles
+            : currentViewerRoles // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        currentStepIndex: null == currentStepIndex
+            ? _value.currentStepIndex
+            : currentStepIndex // ignore: cast_nullable_to_non_nullable
+                  as int,
+        currentStepName: freezed == currentStepName
+            ? _value.currentStepName
+            : currentStepName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        relevantRoles: null == relevantRoles
+            ? _value._relevantRoles
+            : relevantRoles // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
         timeline: null == timeline
             ? _value._timeline
             : timeline // ignore: cast_nullable_to_non_nullable
@@ -607,9 +674,17 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     required this.status,
     required this.currentStage,
     @TimestampConverter() required this.appliedAt,
+    final List<String> currentApproverRoles = const [],
+    final List<String> currentViewerRoles = const [],
+    this.currentStepIndex = 0,
+    this.currentStepName,
+    final List<String> relevantRoles = const [],
     final List<TimelineEntry> timeline = const [],
     this.isActive = true,
-  }) : _timeline = timeline;
+  }) : _currentApproverRoles = currentApproverRoles,
+       _currentViewerRoles = currentViewerRoles,
+       _relevantRoles = relevantRoles,
+       _timeline = timeline;
 
   factory _$LeaveRequestModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$LeaveRequestModelImplFromJson(json);
@@ -644,8 +719,46 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
   @override
   @TimestampConverter()
   final DateTime appliedAt;
+  // Dynamic Workflow State
+  final List<String> _currentApproverRoles;
+  // Dynamic Workflow State
+  @override
+  @JsonKey()
+  List<String> get currentApproverRoles {
+    if (_currentApproverRoles is EqualUnmodifiableListView)
+      return _currentApproverRoles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_currentApproverRoles);
+  }
+
+  final List<String> _currentViewerRoles;
+  @override
+  @JsonKey()
+  List<String> get currentViewerRoles {
+    if (_currentViewerRoles is EqualUnmodifiableListView)
+      return _currentViewerRoles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_currentViewerRoles);
+  }
+
+  @override
+  @JsonKey()
+  final int currentStepIndex;
+  @override
+  final String? currentStepName;
+  final List<String> _relevantRoles;
+  @override
+  @JsonKey()
+  List<String> get relevantRoles {
+    if (_relevantRoles is EqualUnmodifiableListView) return _relevantRoles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_relevantRoles);
+  }
+
+  // Combined approvers + viewers for Firestore query
   // Approval Timeline
   final List<TimelineEntry> _timeline;
+  // Combined approvers + viewers for Firestore query
   // Approval Timeline
   @override
   @JsonKey()
@@ -662,7 +775,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
 
   @override
   String toString() {
-    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, type: $type, startDate: $startDate, endDate: $endDate, reason: $reason, status: $status, currentStage: $currentStage, appliedAt: $appliedAt, timeline: $timeline, isActive: $isActive)';
+    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, type: $type, startDate: $startDate, endDate: $endDate, reason: $reason, status: $status, currentStage: $currentStage, appliedAt: $appliedAt, currentApproverRoles: $currentApproverRoles, currentViewerRoles: $currentViewerRoles, currentStepIndex: $currentStepIndex, currentStepName: $currentStepName, relevantRoles: $relevantRoles, timeline: $timeline, isActive: $isActive)';
   }
 
   @override
@@ -688,6 +801,22 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
                 other.currentStage == currentStage) &&
             (identical(other.appliedAt, appliedAt) ||
                 other.appliedAt == appliedAt) &&
+            const DeepCollectionEquality().equals(
+              other._currentApproverRoles,
+              _currentApproverRoles,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._currentViewerRoles,
+              _currentViewerRoles,
+            ) &&
+            (identical(other.currentStepIndex, currentStepIndex) ||
+                other.currentStepIndex == currentStepIndex) &&
+            (identical(other.currentStepName, currentStepName) ||
+                other.currentStepName == currentStepName) &&
+            const DeepCollectionEquality().equals(
+              other._relevantRoles,
+              _relevantRoles,
+            ) &&
             const DeepCollectionEquality().equals(other._timeline, _timeline) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive));
@@ -695,7 +824,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
     userId,
@@ -709,9 +838,14 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     status,
     currentStage,
     appliedAt,
+    const DeepCollectionEquality().hash(_currentApproverRoles),
+    const DeepCollectionEquality().hash(_currentViewerRoles),
+    currentStepIndex,
+    currentStepName,
+    const DeepCollectionEquality().hash(_relevantRoles),
     const DeepCollectionEquality().hash(_timeline),
     isActive,
-  );
+  ]);
 
   /// Create a copy of LeaveRequestModel
   /// with the given fields replaced by the non-null parameter values.
@@ -744,6 +878,11 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
     required final LeaveStatus status,
     required final LeaveStage currentStage,
     @TimestampConverter() required final DateTime appliedAt,
+    final List<String> currentApproverRoles,
+    final List<String> currentViewerRoles,
+    final int currentStepIndex,
+    final String? currentStepName,
+    final List<String> relevantRoles,
     final List<TimelineEntry> timeline,
     final bool isActive,
   }) = _$LeaveRequestModelImpl;
@@ -777,7 +916,18 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
   LeaveStage get currentStage;
   @override
   @TimestampConverter()
-  DateTime get appliedAt; // Approval Timeline
+  DateTime get appliedAt; // Dynamic Workflow State
+  @override
+  List<String> get currentApproverRoles;
+  @override
+  List<String> get currentViewerRoles;
+  @override
+  int get currentStepIndex;
+  @override
+  String? get currentStepName;
+  @override
+  List<String> get relevantRoles; // Combined approvers + viewers for Firestore query
+  // Approval Timeline
   @override
   List<TimelineEntry> get timeline; // Metadata
   @override

@@ -14,12 +14,20 @@ class LeaveListScreen extends ConsumerWidget {
   final UserModel user;
   final bool excludeCurrentUser;
   final bool onlyCurrentUser;
+  // New role filters
+  final String? targetRole;
+  final List<String>? targetRoleFilter;
+
+  // Internal helper enum
+  // ignore: library_private_types_in_public_api
 
   const LeaveListScreen({
     super.key,
     required this.user,
     this.excludeCurrentUser = false,
     this.onlyCurrentUser = false,
+    this.targetRole,
+    this.targetRoleFilter,
   });
 
   @override
@@ -137,11 +145,13 @@ class LeaveListScreen extends ConsumerWidget {
                         user: user,
                         filterStages: const [LeaveStage.managementReview],
                         excludeCurrentUser: true,
-                        targetRoleFilter: const [
-                          AppRoles.md,
-                          AppRoles.exd,
-                          AppRoles.hr,
-                        ], // List of roles
+
+                        // NEW LOGIC: Show ALL roles EXCEPT Staff and Section Head
+                        // This effectively shows MD, EXD, HR, Floor Manager, Store Manager, etc.
+                        excludeRoleFilter: const [
+                          AppRoles.staff,
+                          AppRoles.sectionHead,
+                        ],
                       ),
                   ],
                 ),
@@ -163,6 +173,7 @@ class LeaveListWidget extends ConsumerStatefulWidget {
   // New role filters
   final String? targetRole;
   final List<String>? targetRoleFilter;
+  final List<String>? excludeRoleFilter;
 
   const LeaveListWidget({
     required this.user,
@@ -171,6 +182,7 @@ class LeaveListWidget extends ConsumerStatefulWidget {
     this.onlyCurrentUser = false,
     this.targetRole,
     this.targetRoleFilter,
+    this.excludeRoleFilter,
   });
 
   @override
@@ -318,6 +330,13 @@ class _LeaveListWidgetState extends ConsumerState<LeaveListWidget> {
                     .where((l) => widget.targetRoleFilter!.contains(l.userRole))
                     .toList();
               }
+              if (widget.excludeRoleFilter != null) {
+                leaves = leaves
+                    .where(
+                      (l) => !widget.excludeRoleFilter!.contains(l.userRole),
+                    )
+                    .toList();
+              }
 
               // 3. Date Range Filter (Overlap Logic)
               if (_startDate != null && _endDate != null) {
@@ -374,25 +393,55 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   bool _isExpanded = false;
 
   Color _getStatusColor(BuildContext context, LeaveStatus status) {
-    // Masking REMOVED to show full transparency
+    // Check Effective Status (Hierarchy Based)
+    final type = _getEffectiveStatusType();
     final scheme = Theme.of(context).colorScheme;
 
-    switch (status) {
-      case LeaveStatus.pending:
-        return Colors.orange;
-      case LeaveStatus.forwarded:
-      case LeaveStatus.sectionHeadForwarded:
-        return scheme.primary;
-      case LeaveStatus.managersApproved:
-      case LeaveStatus.managementApprovedLegacy:
-        return Colors.purple;
-      case LeaveStatus.managementApproved:
-        return Colors.indigo;
-      case LeaveStatus.approved:
-        return Colors.green;
-      case LeaveStatus.rejected:
-        return scheme.error;
+    if (type == _EffectiveStatusType.approved) return Colors.green;
+    if (type == _EffectiveStatusType.rejected) return scheme.error;
+    return Colors.orange;
+  }
+
+  _EffectiveStatusType _getEffectiveStatusType() {
+    if (widget.leave.status == LeaveStatus.approved) {
+      return _EffectiveStatusType.approved;
+    } else if (widget.leave.status == LeaveStatus.rejected) {
+      return _EffectiveStatusType.rejected;
     }
+
+    // Intermediate States: Check Hierarchy (Management > Managers > Section Head)
+    int getRoleRank(String role) {
+      if (role == AppRoles.management) return 3;
+      if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(role)) return 2;
+      // Check for custom manager roles (anything not staff/SH/management)
+      if (![AppRoles.staff, AppRoles.sectionHead].contains(role)) return 2;
+      if (role == AppRoles.sectionHead) return 1;
+      return 0;
+    }
+
+    TimelineEntry? highestRankEntry;
+    int highestRank = -1;
+
+    for (var entry in widget.leave.timeline) {
+      final rank = getRoleRank(entry.byUserRole);
+      if (rank > highestRank) {
+        highestRank = rank;
+        highestRankEntry = entry;
+      } else if (rank == highestRank) {
+        highestRankEntry = entry;
+      }
+    }
+
+    if (highestRankEntry != null) {
+      final action = highestRankEntry.status.toLowerCase();
+      if (action == 'approve' || action == 'forward') {
+        return _EffectiveStatusType.approved;
+      } else if (action == 'reject') {
+        return _EffectiveStatusType.rejected;
+      }
+    }
+
+    return _EffectiveStatusType.pending;
   }
 
   Color _getActionColor(BuildContext context, String action) {
@@ -731,22 +780,20 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    String statusText = widget.leave.status.name.toUpperCase().replaceAll(
-      '_',
-      ' ',
-    );
+    final type = _getEffectiveStatusType();
+    String statusText;
+    Color statusColor;
 
-    if (widget.leave.status == LeaveStatus.managementApprovedLegacy) {
-      statusText = 'MANAGERS APPROVED';
-    } else if (widget.leave.status == LeaveStatus.managersApproved) {
-      statusText = 'MANAGERS APPROVED';
-    } else if (widget.leave.status == LeaveStatus.sectionHeadForwarded) {
-      statusText = 'SECTION HEAD FORWARDED';
-    } else if (widget.leave.status == LeaveStatus.managementApproved) {
-      statusText = 'MANAGEMENT APPROVED';
+    if (type == _EffectiveStatusType.approved) {
+      statusText = 'APPROVED';
+      statusColor = Colors.green;
+    } else if (type == _EffectiveStatusType.rejected) {
+      statusText = 'REJECTED';
+      statusColor = Theme.of(context).colorScheme.error;
+    } else {
+      statusText = 'PENDING';
+      statusColor = Colors.orange;
     }
-
-    Color statusColor = _getStatusColor(context, widget.leave.status);
 
     // Masking REMOVED
 
@@ -769,6 +816,30 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   }
 
   bool _canAct() {
+    // 0. Global Check: If request is already Finalized (Approved), NO ONE can act.
+    // Note: 'Rejected' is removed from here to allow "Independent Opinions" as requested.
+    if (widget.leave.status == LeaveStatus.approved ||
+        widget.leave.status == LeaveStatus.managersApproved ||
+        widget.leave.status == LeaveStatus.managementApproved) {
+      return false;
+    }
+
+    // 0.1 Check if I have ALREADY acted (Audit Trail check)
+    // If I am in the timeline, I shouldn't see buttons again.
+    final hasActed = widget.leave.timeline.any(
+      (t) => t.byUserId == widget.currentUser.id,
+    );
+    if (hasActed) return false;
+
+    // 1. Dynamic Flow Check
+    // If the request has dynamic approvers defined, use that source of truth.
+    if (widget.leave.currentApproverRoles.isNotEmpty) {
+      return widget.leave.currentApproverRoles.any(
+        (r) => r.toLowerCase() == widget.currentUser.role.toLowerCase(),
+      );
+    }
+
+    // 2. Legacy Fallback
     // Section Head Actions
     if (widget.currentUser.role == AppRoles.sectionHead) {
       if (widget.leave.userId == widget.currentUser.id)
@@ -799,6 +870,45 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // 1. Dynamic Flow Actions
+    // If the user is a current approver in the dynamic flow, valid actions are Reject and Approve.
+    // Case-insensitive check
+    final isApprover = widget.leave.currentApproverRoles.any(
+      (r) => r.toLowerCase() == widget.currentUser.role.toLowerCase(),
+    );
+
+    if (isApprover) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          _actionBtn(
+            context,
+            'Reject',
+            isDark ? Colors.red : scheme.error,
+            () => _showActionDialog(
+              context,
+              ref,
+              LeaveAction.reject,
+              'Reject Request',
+            ),
+          ),
+          const SizedBox(width: 8),
+          _actionBtn(
+            context,
+            'Approve',
+            Colors.green,
+            () => _showActionDialog(
+              context,
+              ref,
+              LeaveAction.approve,
+              'Approve Request',
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 2. Legacy Fallback Actions
     if (widget.currentUser.role == AppRoles.sectionHead) {
       if (widget.leave.currentStage == LeaveStage.sectionHeadReview) {
         buttons = [
@@ -1028,3 +1138,5 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
     }
   }
 }
+
+enum _EffectiveStatusType { pending, approved, rejected }

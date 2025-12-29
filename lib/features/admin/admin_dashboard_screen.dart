@@ -6,6 +6,7 @@ import '../../shared/models/user_model.dart';
 import '../../features/configuration/config_service.dart';
 
 import 'user_management_screen.dart';
+import 'leave_flow_configuration_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -69,6 +70,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                       title: 'Section Heads',
                       allowedRoles: [AppRoles.sectionHead],
                     ),
+                  ),
+                ),
+              ),
+              _AdminCard(
+                icon: LucideIcons.workflow,
+                title: 'Leave Flow',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LeaveFlowConfigurationScreen(),
                   ),
                 ),
               ),

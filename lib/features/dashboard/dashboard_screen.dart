@@ -83,13 +83,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
 
         // 3. Middle Tabs (Role Specific)
-        // Only for Managers who process leaves AND apply for leaves (MD, EXD, HR, SectionHead)
+        // Only for Managers who process leaves AND apply for leaves (MD, EXD, HR, SectionHead, Custom Managers)
         // Management role is purely for approval, so they don't get 'My Leaves' or 'Apply'.
-        if ([
-          AppRoles.md,
-          AppRoles.exd,
-          AppRoles.hr,
-          AppRoles.sectionHead,
+        if (![
+          AppRoles.staff,
+          AppRoles.management,
+          AppRoles.superAdmin,
         ].contains(user.role)) {
           finalPages.add(LeaveListScreen(user: user, onlyCurrentUser: true));
           finalDestinations.add(
@@ -135,11 +134,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Management role does NOT see this.
               ((_selectedIndex == 1 && user.role == AppRoles.staff) ||
                   (_selectedIndex == 2 &&
-                      [
-                        AppRoles.md,
-                        AppRoles.exd,
-                        AppRoles.hr,
-                        AppRoles.sectionHead,
+                      ![
+                        AppRoles.staff,
+                        AppRoles.management,
+                        AppRoles.superAdmin,
                       ].contains(user.role)))
               ? FloatingActionButton(
                   onPressed: () {

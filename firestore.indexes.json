@@ -41,6 +41,20 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "leaves",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "relevantRoles",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "appliedAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

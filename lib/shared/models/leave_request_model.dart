@@ -60,6 +60,8 @@ class TimelineEntry with _$TimelineEntry {
 
   factory TimelineEntry.fromJson(Map<String, dynamic> json) =>
       _$TimelineEntryFromJson(json);
+
+  Map<String, dynamic> toJson();
 }
 
 enum LeaveType {
@@ -94,6 +96,14 @@ class LeaveRequestModel with _$LeaveRequestModel {
 
     @TimestampConverter() required DateTime appliedAt,
 
+    // Dynamic Workflow State
+    @Default([]) List<String> currentApproverRoles,
+    @Default([]) List<String> currentViewerRoles,
+    @Default(0) int currentStepIndex,
+    String? currentStepName,
+    @Default([])
+    List<String>
+    relevantRoles, // Combined approvers + viewers for Firestore query
     // Approval Timeline
     @Default([]) List<TimelineEntry> timeline,
 
@@ -103,4 +113,6 @@ class LeaveRequestModel with _$LeaveRequestModel {
 
   factory LeaveRequestModel.fromJson(Map<String, dynamic> json) =>
       _$LeaveRequestModelFromJson(json);
+
+  Map<String, dynamic> toJson();
 }

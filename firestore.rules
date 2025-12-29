@@ -87,6 +87,12 @@ service cloud.firestore {
       allow delete: if request.auth != null && (isManagement(getUserData()) || isSuperAdmin(getUserData()));
     }
 
+    // CONFIGURATIONS (Leave Flow, etc.)
+    match /configurations/{configId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && isSuperAdmin(getUserData());
+    }
+
     // SETTINGS COLLECTION (Roles & Sections)
     match /settings/{document} {
       allow read: if request.auth != null;

@@ -49,6 +49,23 @@ _$LeaveRequestModelImpl _$$LeaveRequestModelImplFromJson(
   appliedAt: const TimestampConverter().fromJson(
     json['appliedAt'] as Timestamp,
   ),
+  currentApproverRoles:
+      (json['currentApproverRoles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  currentViewerRoles:
+      (json['currentViewerRoles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  currentStepIndex: (json['currentStepIndex'] as num?)?.toInt() ?? 0,
+  currentStepName: json['currentStepName'] as String?,
+  relevantRoles:
+      (json['relevantRoles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   timeline:
       (json['timeline'] as List<dynamic>?)
           ?.map((e) => TimelineEntry.fromJson(e as Map<String, dynamic>))
@@ -72,6 +89,11 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'status': _$LeaveStatusEnumMap[instance.status]!,
   'currentStage': _$LeaveStageEnumMap[instance.currentStage]!,
   'appliedAt': const TimestampConverter().toJson(instance.appliedAt),
+  'currentApproverRoles': instance.currentApproverRoles,
+  'currentViewerRoles': instance.currentViewerRoles,
+  'currentStepIndex': instance.currentStepIndex,
+  'currentStepName': instance.currentStepName,
+  'relevantRoles': instance.relevantRoles,
   'timeline': instance.timeline,
   'isActive': instance.isActive,
 };
