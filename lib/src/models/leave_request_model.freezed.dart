@@ -361,7 +361,7 @@ mixin _$LeaveRequestModel {
   @TimestampConverter()
   DateTime get endDate => throw _privateConstructorUsedError;
   String get reason => throw _privateConstructorUsedError; // Workflow State
-  LeaveStatus get status => throw _privateConstructorUsedError;
+  // required LeaveStatus status, // REMOVED
   LeaveStage get currentStage => throw _privateConstructorUsedError;
   @TimestampConverter()
   DateTime get appliedAt => throw _privateConstructorUsedError; // Dynamic Workflow State
@@ -404,7 +404,6 @@ abstract class $LeaveRequestModelCopyWith<$Res> {
     @TimestampConverter() DateTime startDate,
     @TimestampConverter() DateTime endDate,
     String reason,
-    LeaveStatus status,
     LeaveStage currentStage,
     @TimestampConverter() DateTime appliedAt,
     List<String> currentApproverRoles,
@@ -442,7 +441,6 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
     Object? startDate = null,
     Object? endDate = null,
     Object? reason = null,
-    Object? status = null,
     Object? currentStage = null,
     Object? appliedAt = null,
     Object? currentApproverRoles = null,
@@ -495,10 +493,6 @@ class _$LeaveRequestModelCopyWithImpl<$Res, $Val extends LeaveRequestModel>
                 ? _value.reason
                 : reason // ignore: cast_nullable_to_non_nullable
                       as String,
-            status: null == status
-                ? _value.status
-                : status // ignore: cast_nullable_to_non_nullable
-                      as LeaveStatus,
             currentStage: null == currentStage
                 ? _value.currentStage
                 : currentStage // ignore: cast_nullable_to_non_nullable
@@ -561,7 +555,6 @@ abstract class _$$LeaveRequestModelImplCopyWith<$Res>
     @TimestampConverter() DateTime startDate,
     @TimestampConverter() DateTime endDate,
     String reason,
-    LeaveStatus status,
     LeaveStage currentStage,
     @TimestampConverter() DateTime appliedAt,
     List<String> currentApproverRoles,
@@ -598,7 +591,6 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
     Object? startDate = null,
     Object? endDate = null,
     Object? reason = null,
-    Object? status = null,
     Object? currentStage = null,
     Object? appliedAt = null,
     Object? currentApproverRoles = null,
@@ -651,10 +643,6 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
             ? _value.reason
             : reason // ignore: cast_nullable_to_non_nullable
                   as String,
-        status: null == status
-            ? _value.status
-            : status // ignore: cast_nullable_to_non_nullable
-                  as LeaveStatus,
         currentStage: null == currentStage
             ? _value.currentStage
             : currentStage // ignore: cast_nullable_to_non_nullable
@@ -698,7 +686,7 @@ class __$$LeaveRequestModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$LeaveRequestModelImpl implements _LeaveRequestModel {
+class _$LeaveRequestModelImpl extends _LeaveRequestModel {
   const _$LeaveRequestModelImpl({
     required this.id,
     required this.userId,
@@ -710,7 +698,6 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     @TimestampConverter() required this.startDate,
     @TimestampConverter() required this.endDate,
     required this.reason,
-    required this.status,
     required this.currentStage,
     @TimestampConverter() required this.appliedAt,
     final List<String> currentApproverRoles = const [],
@@ -723,7 +710,8 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
   }) : _currentApproverRoles = currentApproverRoles,
        _currentViewerRoles = currentViewerRoles,
        _relevantRoles = relevantRoles,
-       _timeline = timeline;
+       _timeline = timeline,
+       super._();
 
   factory _$LeaveRequestModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$LeaveRequestModelImplFromJson(json);
@@ -754,8 +742,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
   @override
   final String reason;
   // Workflow State
-  @override
-  final LeaveStatus status;
+  // required LeaveStatus status, // REMOVED
   @override
   final LeaveStage currentStage;
   @override
@@ -817,7 +804,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
 
   @override
   String toString() {
-    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, employeeId: $employeeId, type: $type, startDate: $startDate, endDate: $endDate, reason: $reason, status: $status, currentStage: $currentStage, appliedAt: $appliedAt, currentApproverRoles: $currentApproverRoles, currentViewerRoles: $currentViewerRoles, currentStepIndex: $currentStepIndex, currentStepName: $currentStepName, relevantRoles: $relevantRoles, timeline: $timeline, isActive: $isActive)';
+    return 'LeaveRequestModel(id: $id, userId: $userId, userName: $userName, userRole: $userRole, userSection: $userSection, employeeId: $employeeId, type: $type, startDate: $startDate, endDate: $endDate, reason: $reason, currentStage: $currentStage, appliedAt: $appliedAt, currentApproverRoles: $currentApproverRoles, currentViewerRoles: $currentViewerRoles, currentStepIndex: $currentStepIndex, currentStepName: $currentStepName, relevantRoles: $relevantRoles, timeline: $timeline, isActive: $isActive)';
   }
 
   @override
@@ -840,7 +827,6 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
                 other.startDate == startDate) &&
             (identical(other.endDate, endDate) || other.endDate == endDate) &&
             (identical(other.reason, reason) || other.reason == reason) &&
-            (identical(other.status, status) || other.status == status) &&
             (identical(other.currentStage, currentStage) ||
                 other.currentStage == currentStage) &&
             (identical(other.appliedAt, appliedAt) ||
@@ -880,7 +866,6 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
     startDate,
     endDate,
     reason,
-    status,
     currentStage,
     appliedAt,
     const DeepCollectionEquality().hash(_currentApproverRoles),
@@ -909,7 +894,7 @@ class _$LeaveRequestModelImpl implements _LeaveRequestModel {
   }
 }
 
-abstract class _LeaveRequestModel implements LeaveRequestModel {
+abstract class _LeaveRequestModel extends LeaveRequestModel {
   const factory _LeaveRequestModel({
     required final String id,
     required final String userId,
@@ -921,7 +906,6 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
     @TimestampConverter() required final DateTime startDate,
     @TimestampConverter() required final DateTime endDate,
     required final String reason,
-    required final LeaveStatus status,
     required final LeaveStage currentStage,
     @TimestampConverter() required final DateTime appliedAt,
     final List<String> currentApproverRoles,
@@ -932,6 +916,7 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
     final List<TimelineEntry> timeline,
     final bool isActive,
   }) = _$LeaveRequestModelImpl;
+  const _LeaveRequestModel._() : super._();
 
   factory _LeaveRequestModel.fromJson(Map<String, dynamic> json) =
       _$LeaveRequestModelImpl.fromJson;
@@ -958,8 +943,7 @@ abstract class _LeaveRequestModel implements LeaveRequestModel {
   DateTime get endDate;
   @override
   String get reason; // Workflow State
-  @override
-  LeaveStatus get status;
+  // required LeaveStatus status, // REMOVED
   @override
   LeaveStage get currentStage;
   @override

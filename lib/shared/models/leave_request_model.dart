@@ -19,16 +19,6 @@ class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
 enum LeaveStatus {
   @JsonValue('pending')
   pending,
-  @JsonValue('forwarded')
-  forwarded,
-  @JsonValue('managersapproved')
-  managersApproved,
-  @JsonValue('management_approved') // Support for existing records
-  managementApprovedLegacy,
-  @JsonValue('sectionheadforwarded')
-  sectionHeadForwarded,
-  @JsonValue('managementapproved')
-  managementApproved,
   @JsonValue('approved')
   approved,
   @JsonValue('rejected')

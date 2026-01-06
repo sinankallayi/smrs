@@ -5,23 +5,12 @@ part 'user_model.g.dart';
 
 class AppRoles {
   static const String superAdmin = 'superAdmin';
-  static const String md = 'md';
-  static const String exd = 'exd';
   static const String hr = 'hr';
   static const String sectionHead = 'sectionHead';
   static const String management = 'management';
   static const String staff = 'staff';
 
-  static const List<String> values = [
-    superAdmin,
-    md,
-    exd,
-    hr,
-    sectionHead,
-
-    management,
-    staff,
-  ];
+  static const List<String> values = [superAdmin, management, staff, hr];
 }
 
 class AppSections {

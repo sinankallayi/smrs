@@ -40,7 +40,7 @@ final sectionsProvider = AutoDisposeStreamProvider<List<String>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SectionsRef = AutoDisposeStreamProviderRef<List<String>>;
-String _$configServiceHash() => r'e461bc2cb14d931f4ba9a25d73a2e7c1db18ca09';
+String _$configServiceHash() => r'464cb40e3b7a3694f245e0160da4e50bc7905a71';
 
 /// See also [ConfigService].
 @ProviderFor(ConfigService)

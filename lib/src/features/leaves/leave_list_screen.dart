@@ -39,38 +39,68 @@ class LeaveListScreen extends ConsumerWidget {
       );
     }
 
-    // 2. Section Head "Review/Dashboard" Mode
-    if (user.role == AppRoles.sectionHead) {
+    // Role Helper Booleans
+    final normalizedRole = user.role.trim().toLowerCase().replaceAll(' ', '');
+    // Robust Section Head Check (handles "sectionHead" and "Section Head")
+    final isSectionHead =
+        normalizedRole == AppRoles.sectionHead.toLowerCase() ||
+        normalizedRole == 'headofsection'; // Handling potential variants if any
+
+    // Explicit Role Checks
+    final isStaff = normalizedRole == AppRoles.staff.toLowerCase();
+    final isHR = normalizedRole == AppRoles.hr.toLowerCase();
+    final isManagement = normalizedRole == AppRoles.management.toLowerCase();
+
+    // "Manager" is anyone else (Store Manager, Floor Manager, etc.)
+    final isManager = !isStaff && !isSectionHead && !isHR && !isManagement;
+
+    // --- CASE 1: SECTION HEAD (Staff Only) ---
+    // Section Head logic moved to SectionHeadReviewScreen.
+    // However, if for some reason a Section Head lands here, fallback to their specific view or manager view.
+    // Technically Dashboard shouldn't route them here, but safe to remove explicit handling or alias to Manager view?
+    // Actually, plan says remove it.
+
+    // logic removed.
+
+    // --- CASE 2: MANAGER (Staff, Section Head, HR) ---
+    if (isManager) {
       return DefaultTabController(
         length: 3,
         child: SafeArea(
           child: Column(
             children: [
               TabBar(
+                isScrollable: true, // In case of small screens
                 tabs: [
-                  Tab(text: 'Pending'.toTitleCase()),
-                  Tab(text: 'Finalization'.toTitleCase()),
-                  Tab(text: 'History'.toTitleCase()),
+                  Tab(text: 'Staff Leaves'.toTitleCase()),
+                  Tab(text: 'Section Head Leaves'.toTitleCase()),
+                  Tab(text: 'HR Leaves'.toTitleCase()),
                 ],
               ),
               Expanded(
                 child: TabBarView(
                   children: [
+                    // Staff
                     LeaveListWidget(
                       user: user,
-                      filterStages: const [LeaveStage.sectionHeadReview],
-                      excludeCurrentUser:
-                          true, // Explicitly exclude self from review
-                    ),
-                    LeaveListWidget(
-                      user: user,
-                      filterStages: const [LeaveStage.finalization],
                       excludeCurrentUser: true,
+                      targetRole: AppRoles.staff,
                     ),
+                    // Section Head
                     LeaveListWidget(
                       user: user,
-                      filterStages: null, // Shows all/history
                       excludeCurrentUser: true,
+                      // Filter for Section Head users
+                      customFilter: (l) {
+                        final r = l.userRole.toLowerCase().replaceAll(' ', '');
+                        return r == AppRoles.sectionHead.toLowerCase();
+                      },
+                    ),
+                    // HR
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      targetRole: AppRoles.hr,
                     ),
                   ],
                 ),
@@ -80,79 +110,53 @@ class LeaveListScreen extends ConsumerWidget {
         ),
       );
     }
-    // 3. Management/Manager "Review" Mode
-    else if (user.role != AppRoles.staff) {
-      // Management View Logic
-      // If showing "My Leaves" (onlyCurrentUser == true), show flat list
-      // If showing "Review/Inbox" (excludeCurrentUser == true), show Pending/History tabs
 
-      // We need to know which filters are active to decide layout.
-      // But `LeaveListScreen` doesn't take these params in constructor, `_LeaveList` does.
-      // Wait, `LeaveListScreen` is the top level. The Dashboard creates it.
-      // We need to update `LeaveListScreen` to accept these params to pass down.
-
-      // Since I cannot change the constructor of LeaveListScreen easily without cascading changes (it's called in Dashboard),
-      // I will infer intent or add params to constructor.
-      // I added params in `DashboardScreen` call: `LeaveListScreen(user: user, excludeCurrentUser: true)`
-      // So I MUST update the constructor here.
-
-      // Review/Inbox Mode (or default fallback for managers)
-      // Separation logic:
-      // Separation logic:
-      // Management: Staff | Section Heads | Managers
-      // Managers (MD etc): Staff | Section Heads
-
-      final bool isManagementRole = user.role == AppRoles.management;
-
+    // --- CASE 3: HR (Staff, Section Head, Manager) ---
+    if (isHR) {
       return DefaultTabController(
-        length: isManagementRole ? 3 : 2,
+        length: 3,
         child: SafeArea(
           child: Column(
             children: [
               TabBar(
+                isScrollable: true,
                 tabs: [
                   Tab(text: 'Staff Leaves'.toTitleCase()),
                   Tab(text: 'Section Head Leaves'.toTitleCase()),
-                  if (isManagementRole)
-                    Tab(text: 'Manager Leaves'.toTitleCase()),
+                  Tab(text: 'Manager Leaves'.toTitleCase()),
                 ],
               ),
               Expanded(
                 child: TabBarView(
                   children: [
-                    // 1. Staff Leaves (Filtered by role 'staff')
+                    // Staff
                     LeaveListWidget(
                       user: user,
-                      filterStages: const [
-                        LeaveStage.managementReview,
-                        LeaveStage.sectionHeadReview,
-                      ],
                       excludeCurrentUser: true,
                       targetRole: AppRoles.staff,
                     ),
-
-                    // 2. Section Head Leaves (Filtered by role 'sectionHead')
+                    // Section Head
                     LeaveListWidget(
                       user: user,
-                      filterStages: const [LeaveStage.managementReview],
                       excludeCurrentUser: true,
-                      targetRole: AppRoles.sectionHead,
+                      customFilter: (l) {
+                        final r = l.userRole.toLowerCase().replaceAll(' ', '');
+                        return r == AppRoles.sectionHead.toLowerCase();
+                      },
                     ),
-
-                    // 3. Manager Leaves (For Management Only)
-                    if (isManagementRole)
-                      LeaveListWidget(
-                        user: user,
-                        filterStages: const [LeaveStage.managementReview],
-                        excludeCurrentUser: true,
-
-                        // NEW LOGIC: Show ALL roles EXCEPT Staff and Section Head
-                        // This effectively shows MD, EXD, HR, Floor Manager, Store Manager, etc.
-                        excludeRoleFilter: const [
-                          AppRoles.staff,
-                          AppRoles.sectionHead,
-                        ],
-                      ),
+                    // Manager (All other roles)
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      customFilter: (l) {
+                        final r = l.userRole.toLowerCase().replaceAll(' ', '');
+                        // Not Staff, SH, HR, Management
+                        return r != AppRoles.staff.toLowerCase() &&
+                            r != AppRoles.sectionHead.toLowerCase() &&
+                            r != AppRoles.hr.toLowerCase() &&
+                            r != AppRoles.management.toLowerCase();
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -160,7 +164,70 @@ class LeaveListScreen extends ConsumerWidget {
           ),
         ),
       );
-    } // Staff View
+    }
+
+    // --- CASE 4: MANAGEMENT (Everything) ---
+    if (isManagement) {
+      return DefaultTabController(
+        length: 4,
+        child: SafeArea(
+          child: Column(
+            children: [
+              TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Staff Leaves'.toTitleCase()),
+                  Tab(text: 'Section Head Leaves'.toTitleCase()),
+                  Tab(text: 'HR Leaves'.toTitleCase()),
+                  Tab(text: 'Manager Leaves'.toTitleCase()),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    // Staff
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      targetRole: AppRoles.staff,
+                    ),
+                    // Section Head
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      customFilter: (l) {
+                        final r = l.userRole.toLowerCase().replaceAll(' ', '');
+                        return r == AppRoles.sectionHead.toLowerCase();
+                      },
+                    ),
+                    // HR
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      targetRole: AppRoles.hr,
+                    ),
+                    // Manager
+                    LeaveListWidget(
+                      user: user,
+                      excludeCurrentUser: true,
+                      customFilter: (l) {
+                        final r = l.userRole.toLowerCase().replaceAll(' ', '');
+                        return r != AppRoles.staff.toLowerCase() &&
+                            r != AppRoles.sectionHead.toLowerCase() &&
+                            r != AppRoles.hr.toLowerCase() &&
+                            r != AppRoles.management.toLowerCase();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Default Fallback (Staff View just in case)
     return SafeArea(child: LeaveListWidget(user: user));
   }
 }
@@ -174,8 +241,10 @@ class LeaveListWidget extends ConsumerStatefulWidget {
   final String? targetRole;
   final List<String>? targetRoleFilter;
   final List<String>? excludeRoleFilter;
+  final bool Function(LeaveRequestModel)? customFilter;
 
   const LeaveListWidget({
+    super.key,
     required this.user,
     this.filterStages,
     this.excludeCurrentUser = false,
@@ -183,6 +252,7 @@ class LeaveListWidget extends ConsumerStatefulWidget {
     this.targetRole,
     this.targetRoleFilter,
     this.excludeRoleFilter,
+    this.customFilter,
   });
 
   @override
@@ -360,66 +430,9 @@ class _LeaveListWidgetState extends ConsumerState<LeaveListWidget> {
 
               // 2. Status Filter (Pending, Rejected, Approved)
               if (_statusFilter != null) {
-                leaves = leaves.where((l) {
-                  // Replicate _getEffectiveStatusType logic locally for filtering
-                  bool isApproved = false;
-                  bool isRejected = false;
-
-                  // 1. Direct Model Status Check
-                  if (l.status == LeaveStatus.approved) {
-                    isApproved = true;
-                  } else if (l.status == LeaveStatus.rejected) {
-                    isRejected = true;
-                  } else {
-                    // 2. Timeline Check (Effective Status)
-                    TimelineEntry? highestRankEntry;
-                    int highestRank = -1;
-
-                    for (var entry in l.timeline) {
-                      int rank = 0;
-                      if (entry.byUserRole == AppRoles.management)
-                        rank = 3;
-                      else if ([
-                        AppRoles.md,
-                        AppRoles.exd,
-                        AppRoles.hr,
-                      ].contains(entry.byUserRole))
-                        rank = 2;
-                      else if (![
-                        AppRoles.staff,
-                        AppRoles.sectionHead,
-                      ].contains(entry.byUserRole))
-                        rank = 2;
-                      else if (entry.byUserRole == AppRoles.sectionHead)
-                        rank = 1;
-
-                      if (rank > highestRank) {
-                        highestRank = rank;
-                        highestRankEntry = entry;
-                      } else if (rank == highestRank) {
-                        highestRankEntry = entry;
-                      }
-                    }
-
-                    if (highestRankEntry != null) {
-                      final action = highestRankEntry.status.toLowerCase();
-                      if (action == 'approve' || action == 'forward') {
-                        isApproved = true;
-                      } else if (action == 'reject') {
-                        isRejected = true;
-                      }
-                    }
-                  }
-
-                  if (_statusFilter == 'approved') return isApproved;
-                  if (_statusFilter == 'rejected') return isRejected;
-                  if (_statusFilter == 'pending')
-                    return !isApproved && !isRejected;
-
-                  return true;
-
-                  return true;
-                }).toList();
+                leaves = leaves
+                    .where((l) => l.effectiveStatus.name == _statusFilter)
+                    .toList();
               }
 
               // 2A. User Filter (Inbox vs My Leaves)
@@ -436,22 +449,39 @@ class _LeaveListWidgetState extends ConsumerState<LeaveListWidget> {
               }
 
               // 2B. Role Separation Filter
+              // Helper to normalize roles for loose matching (handles 'Section Head' vs 'sectionHead')
+              String normalize(String r) =>
+                  r.trim().replaceAll(' ', '').toLowerCase();
+
               if (widget.targetRole != null) {
+                final target = normalize(widget.targetRole!);
                 leaves = leaves
-                    .where((l) => l.userRole == widget.targetRole)
+                    .where((l) => normalize(l.userRole) == target)
                     .toList();
               }
               if (widget.targetRoleFilter != null) {
+                final targets = widget.targetRoleFilter!
+                    .map(normalize)
+                    .toList();
                 leaves = leaves
-                    .where((l) => widget.targetRoleFilter!.contains(l.userRole))
+                    .where((l) => targets.contains(normalize(l.userRole)))
                     .toList();
               }
               if (widget.excludeRoleFilter != null) {
-                leaves = leaves
-                    .where(
-                      (l) => !widget.excludeRoleFilter!.contains(l.userRole),
-                    )
+                final excluded = widget.excludeRoleFilter!
+                    .map(normalize)
                     .toList();
+                leaves = leaves
+                    .where((l) => !excluded.contains(normalize(l.userRole)))
+                    .toList();
+                leaves = leaves
+                    .where((l) => !excluded.contains(normalize(l.userRole)))
+                    .toList();
+              }
+
+              // 2C. Custom Logic Filter
+              if (widget.customFilter != null) {
+                leaves = leaves.where(widget.customFilter!).toList();
               }
 
               // 3. Date Range Filter (Overlap Logic)
@@ -519,44 +549,9 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   }
 
   _EffectiveStatusType _getEffectiveStatusType() {
-    if (widget.leave.status == LeaveStatus.approved) {
-      return _EffectiveStatusType.approved;
-    } else if (widget.leave.status == LeaveStatus.rejected) {
-      return _EffectiveStatusType.rejected;
-    }
-
-    // Intermediate States: Check Hierarchy (Management > Managers > Section Head)
-    int getRoleRank(String role) {
-      if (role == AppRoles.management) return 3;
-      if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(role)) return 2;
-      // Check for custom manager roles (anything not staff/SH/management)
-      if (![AppRoles.staff, AppRoles.sectionHead].contains(role)) return 2;
-      if (role == AppRoles.sectionHead) return 1;
-      return 0;
-    }
-
-    TimelineEntry? highestRankEntry;
-    int highestRank = -1;
-
-    for (var entry in widget.leave.timeline) {
-      final rank = getRoleRank(entry.byUserRole);
-      if (rank > highestRank) {
-        highestRank = rank;
-        highestRankEntry = entry;
-      } else if (rank == highestRank) {
-        highestRankEntry = entry;
-      }
-    }
-
-    if (highestRankEntry != null) {
-      final action = highestRankEntry.status.toLowerCase();
-      if (action == 'approve' || action == 'forward') {
-        return _EffectiveStatusType.approved;
-      } else if (action == 'reject') {
-        return _EffectiveStatusType.rejected;
-      }
-    }
-
+    final status = widget.leave.effectiveStatus;
+    if (status == LeaveStatus.approved) return _EffectiveStatusType.approved;
+    if (status == LeaveStatus.rejected) return _EffectiveStatusType.rejected;
     return _EffectiveStatusType.pending;
   }
 
@@ -608,7 +603,7 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
               Container(
                 width: 4,
                 decoration: BoxDecoration(
-                  color: _getStatusColor(context, widget.leave.status),
+                  color: _getStatusColor(context, widget.leave.effectiveStatus),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -647,8 +642,40 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
                           ),
                           Row(
                             children: [
-                              _buildStatusBadge(context),
-                              const SizedBox(width: 4),
+                              // Status Badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(
+                                    context,
+                                    widget.leave.effectiveStatus,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _getStatusColor(
+                                      context,
+                                      widget.leave.effectiveStatus,
+                                    ),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.leave.effectiveStatus.name
+                                      .toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getStatusColor(
+                                      context,
+                                      widget.leave.effectiveStatus,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               Icon(
                                 _isExpanded
                                     ? LucideIcons.chevronUp
@@ -835,10 +862,112 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
                           }),
                         ],
 
-                        if (_canAct()) ...[
-                          const SizedBox(height: 16),
-                          _buildActionButtons(ref, context),
-                        ],
+                        // PRIORITY CHECK: If Management has approved, hide buttons for others
+                        Builder(
+                          builder: (context) {
+                            final managementApproved = widget.leave.timeline
+                                .any((t) {
+                                  final role = t.byUserRole.toLowerCase();
+                                  final status = t.status.toLowerCase();
+                                  return role ==
+                                          AppRoles.management.toLowerCase() &&
+                                      (status == 'approve' ||
+                                          status == 'approved');
+                                });
+
+                            if (managementApproved &&
+                                widget.currentUser.role !=
+                                    AppRoles.management) {
+                              return Container(
+                                margin: const EdgeInsets.only(top: 16),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.green.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      LucideIcons.checkCircle2,
+                                      size: 16,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Management has already approved this request.',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final managementRejected = widget.leave.timeline
+                                .any((t) {
+                                  final role = t.byUserRole.toLowerCase();
+                                  final status = t.status.toLowerCase();
+                                  return role ==
+                                          AppRoles.management.toLowerCase() &&
+                                      (status == 'reject' ||
+                                          status == 'rejected');
+                                });
+
+                            if (managementRejected &&
+                                widget.currentUser.role !=
+                                    AppRoles.management) {
+                              return Container(
+                                margin: const EdgeInsets.only(top: 16),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.red.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      LucideIcons.xCircle,
+                                      size: 16,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Management has already rejected this request.',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            if (_canAct()) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: _buildActionButtons(ref, context),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ],
                     ],
                   ),
@@ -851,50 +980,17 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
     );
   }
 
-  Widget _buildStatusBadge(BuildContext context) {
-    final type = _getEffectiveStatusType();
-    String statusText;
-    Color statusColor;
-
-    if (type == _EffectiveStatusType.approved) {
-      statusText = 'APPROVED';
-      statusColor = Colors.green;
-    } else if (type == _EffectiveStatusType.rejected) {
-      statusText = 'REJECTED';
-      statusColor = Theme.of(context).colorScheme.error;
-    } else {
-      statusText = 'PENDING';
-      statusColor = Colors.orange;
-    }
-
-    // Masking REMOVED
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: statusColor),
-      ),
-      child: Text(
-        statusText,
-        style: TextStyle(
-          color: statusColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-        ),
-      ),
-    );
-  }
-
   bool _canAct() {
     // 0. Global Check: If request is already Finalized (Approved), NO ONE can act.
     // Note: 'Rejected' is removed from here to allow "Independent Opinions" as requested.
-    if (widget.leave.status == LeaveStatus.approved ||
-        widget.leave.status == LeaveStatus.managersApproved ||
-        widget.leave.status == LeaveStatus.managementApproved) {
+    // 0. Global Check: If request is already Finalized (Approved), NO ONE can act.
+    // Note: 'Rejected' is removed from here to allow "Independent Opinions" as requested.
+    // REVISION: Allow actions even if Approved (Management Override) so lower authorities can add their input.
+    /*
+    if (widget.leave.status == LeaveStatus.approved) {
       return false;
     }
+    */
 
     // 0.1 Check if I have ALREADY acted (Audit Trail check)
     // If I am in the timeline, I shouldn't see buttons again.
@@ -903,24 +999,37 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
     );
     if (hasActed) return false;
 
-    // 1. Dynamic Flow Check
-    // If the request has dynamic approvers defined, use that source of truth.
+    // 1. Check Dynamic Approvers (Primary Source of Truth)
     if (widget.leave.currentApproverRoles.isNotEmpty) {
-      return widget.leave.currentApproverRoles.any(
-        (r) => r.toLowerCase() == widget.currentUser.role.toLowerCase(),
-      );
+      final userRole = widget.currentUser.role.toLowerCase();
+      final userSection = widget.currentUser.section?.toLowerCase();
+
+      return widget.leave.currentApproverRoles.any((r) {
+        final approver = r.toLowerCase();
+        // 1. Direct Role Match
+        if (approver == userRole) return true;
+        // 2. Section Match (If I am Section Head of 'Bakery', and 'Bakery' is approver)
+        if (userSection != null &&
+            approver == userSection &&
+            userRole == AppRoles.sectionHead.toLowerCase()) {
+          return true;
+        }
+        return false;
+      });
     }
 
-    // 2. Legacy Fallback
-    // Section Head Actions
+    // 2. Legacy / Fallback Logic (Only if approverRoles is empty)
+    // Values below...
+    // Section Head Logic
     if (widget.currentUser.role == AppRoles.sectionHead) {
-      if (widget.leave.userId == widget.currentUser.id)
-        return false; // Prevent acting on own leave
-      return widget.leave.currentStage == LeaveStage.sectionHeadReview ||
-          widget.leave.currentStage == LeaveStage.finalization;
+      // Can act if in Section Head Review
+      if (widget.leave.currentStage == LeaveStage.sectionHeadReview)
+        return true;
+      // Can act in Finalization (if applicable)
+      if (widget.leave.currentStage == LeaveStage.finalization) return true;
+      return false;
     }
-    // Management Actions
-    // Management / Upper Authority Actions
+    // Management/HR/Admin Logic (Fallback)
     if (![
       AppRoles.staff,
       AppRoles.sectionHead,
@@ -934,6 +1043,7 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
       if (widget.leave.currentStage == LeaveStage.sectionHeadReview)
         return true;
     }
+
     return false;
   }
 
@@ -943,11 +1053,20 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 1. Dynamic Flow Actions
-    // If the user is a current approver in the dynamic flow, valid actions are Reject and Approve.
-    // Case-insensitive check
-    final isApprover = widget.leave.currentApproverRoles.any(
-      (r) => r.toLowerCase() == widget.currentUser.role.toLowerCase(),
-    );
+    // Case-insensitive check with Section support
+    final userRole = widget.currentUser.role.toLowerCase();
+    final userSection = widget.currentUser.section?.toLowerCase();
+
+    final isApprover = widget.leave.currentApproverRoles.any((r) {
+      final approver = r.toLowerCase();
+      if (approver == userRole) return true;
+      if (userSection != null &&
+          approver == userSection &&
+          userRole == AppRoles.sectionHead.toLowerCase()) {
+        return true;
+      }
+      return false;
+    });
 
     if (isApprover) {
       return Row(

@@ -25,9 +25,11 @@ mixin _$UserModel {
   String get email => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get role =>
-      throw _privateConstructorUsedError; // Changed from UserRole
+      throw _privateConstructorUsedError; // STRICT: 'manager', 'sectionHead', 'hr', etc.
   String? get section =>
-      throw _privateConstructorUsedError; // Changed from UserSection
+      throw _privateConstructorUsedError; // For Section Heads
+  String? get designation =>
+      throw _privateConstructorUsedError; // For Managers (e.g. 'Store Manager')
   @JsonKey(readValue: _readEmployeeId)
   String? get employeeId => throw _privateConstructorUsedError;
   String? get createdBy => throw _privateConstructorUsedError;
@@ -54,6 +56,7 @@ abstract class $UserModelCopyWith<$Res> {
     String name,
     String role,
     String? section,
+    String? designation,
     @JsonKey(readValue: _readEmployeeId) String? employeeId,
     String? createdBy,
     bool isActive,
@@ -80,6 +83,7 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
     Object? name = null,
     Object? role = null,
     Object? section = freezed,
+    Object? designation = freezed,
     Object? employeeId = freezed,
     Object? createdBy = freezed,
     Object? isActive = null,
@@ -105,6 +109,10 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
             section: freezed == section
                 ? _value.section
                 : section // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            designation: freezed == designation
+                ? _value.designation
+                : designation // ignore: cast_nullable_to_non_nullable
                       as String?,
             employeeId: freezed == employeeId
                 ? _value.employeeId
@@ -139,6 +147,7 @@ abstract class _$$UserModelImplCopyWith<$Res>
     String name,
     String role,
     String? section,
+    String? designation,
     @JsonKey(readValue: _readEmployeeId) String? employeeId,
     String? createdBy,
     bool isActive,
@@ -164,6 +173,7 @@ class __$$UserModelImplCopyWithImpl<$Res>
     Object? name = null,
     Object? role = null,
     Object? section = freezed,
+    Object? designation = freezed,
     Object? employeeId = freezed,
     Object? createdBy = freezed,
     Object? isActive = null,
@@ -189,6 +199,10 @@ class __$$UserModelImplCopyWithImpl<$Res>
         section: freezed == section
             ? _value.section
             : section // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        designation: freezed == designation
+            ? _value.designation
+            : designation // ignore: cast_nullable_to_non_nullable
                   as String?,
         employeeId: freezed == employeeId
             ? _value.employeeId
@@ -216,6 +230,7 @@ class _$UserModelImpl implements _UserModel {
     required this.name,
     required this.role,
     this.section,
+    this.designation,
     @JsonKey(readValue: _readEmployeeId) this.employeeId,
     this.createdBy,
     this.isActive = true,
@@ -232,10 +247,13 @@ class _$UserModelImpl implements _UserModel {
   final String name;
   @override
   final String role;
-  // Changed from UserRole
+  // STRICT: 'manager', 'sectionHead', 'hr', etc.
   @override
   final String? section;
-  // Changed from UserSection
+  // For Section Heads
+  @override
+  final String? designation;
+  // For Managers (e.g. 'Store Manager')
   @override
   @JsonKey(readValue: _readEmployeeId)
   final String? employeeId;
@@ -247,7 +265,7 @@ class _$UserModelImpl implements _UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, email: $email, name: $name, role: $role, section: $section, employeeId: $employeeId, createdBy: $createdBy, isActive: $isActive)';
+    return 'UserModel(id: $id, email: $email, name: $name, role: $role, section: $section, designation: $designation, employeeId: $employeeId, createdBy: $createdBy, isActive: $isActive)';
   }
 
   @override
@@ -260,6 +278,8 @@ class _$UserModelImpl implements _UserModel {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.role, role) || other.role == role) &&
             (identical(other.section, section) || other.section == section) &&
+            (identical(other.designation, designation) ||
+                other.designation == designation) &&
             (identical(other.employeeId, employeeId) ||
                 other.employeeId == employeeId) &&
             (identical(other.createdBy, createdBy) ||
@@ -277,6 +297,7 @@ class _$UserModelImpl implements _UserModel {
     name,
     role,
     section,
+    designation,
     employeeId,
     createdBy,
     isActive,
@@ -303,6 +324,7 @@ abstract class _UserModel implements UserModel {
     required final String name,
     required final String role,
     final String? section,
+    final String? designation,
     @JsonKey(readValue: _readEmployeeId) final String? employeeId,
     final String? createdBy,
     final bool isActive,
@@ -318,9 +340,11 @@ abstract class _UserModel implements UserModel {
   @override
   String get name;
   @override
-  String get role; // Changed from UserRole
+  String get role; // STRICT: 'manager', 'sectionHead', 'hr', etc.
   @override
-  String? get section; // Changed from UserSection
+  String? get section; // For Section Heads
+  @override
+  String? get designation; // For Managers (e.g. 'Store Manager')
   @override
   @JsonKey(readValue: _readEmployeeId)
   String? get employeeId;

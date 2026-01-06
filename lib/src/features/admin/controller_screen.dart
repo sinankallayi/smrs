@@ -16,22 +16,11 @@ class ControllerScreen extends ConsumerWidget {
           title: const Text('Controller'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Roles', icon: Icon(LucideIcons.shield)),
+              Tab(text: 'Manager Titles', icon: Icon(LucideIcons.shield)),
               Tab(text: 'Sections', icon: Icon(LucideIcons.layoutGrid)),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(LucideIcons.refreshCcw),
-              tooltip: 'Initialize Defaults',
-              onPressed: () {
-                ref.read(configServiceProvider.notifier).initializeDefaults();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Defaults initialized')),
-                );
-              },
-            ),
-          ],
+          actions: [],
         ),
         body: const TabBarView(
           children: [
@@ -77,7 +66,9 @@ class _ConfigList extends ConsumerWidget {
                     role != AppRoles.superAdmin &&
                     role != AppRoles.sectionHead &&
                     role != AppRoles.staff &&
-                    role != AppRoles.management,
+                    role != AppRoles.management &&
+                    role !=
+                        AppRoles.hr, // Exclude HR from generic managers list
               )
               .toList();
         }
@@ -90,7 +81,7 @@ class _ConfigList extends ConsumerWidget {
                 onPressed: () => _showAddDialog(context, ref),
                 icon: const Icon(LucideIcons.plus),
                 label: Text(
-                  'Add New ${type == ConfigType.role ? 'Role' : 'Section'}',
+                  'Add New ${type == ConfigType.role ? 'Manager Title' : 'Section'}',
                 ),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
@@ -115,14 +106,16 @@ class _ConfigList extends ConsumerWidget {
                         return Card(
                           child: ListTile(
                             title: Text(item.toUpperCase()),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                LucideIcons.trash2,
-                                color: Colors.red,
-                              ),
-                              onPressed: () =>
-                                  _confirmDelete(context, ref, item),
-                            ),
+                            trailing: item == AppRoles.hr
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(
+                                      LucideIcons.trash2,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () =>
+                                        _confirmDelete(context, ref, item),
+                                  ),
                           ),
                         );
                       },
@@ -136,38 +129,83 @@ class _ConfigList extends ConsumerWidget {
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
+    bool isSubmitting = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add ${type == ConfigType.role ? 'Role' : 'Section'}'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Value',
-            hintText: 'e.g. manager',
-            border: OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Add ${type == ConfigType.role ? 'Manager Title' : 'Section'}',
           ),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Value',
+              hintText: 'e.g. manager',
+              border: OutlineInputBorder(),
+            ),
+            enabled: !isSubmitting,
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final value = controller.text.trim();
+                      if (value.isNotEmpty) {
+                        setState(() => isSubmitting = true);
+                        try {
+                          if (type == ConfigType.role) {
+                            await ref
+                                .read(configServiceProvider.notifier)
+                                .addRole(value);
+                          } else {
+                            await ref
+                                .read(configServiceProvider.notifier)
+                                .addSection(value);
+                          }
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Added "$value" successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error adding item: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (context.mounted &&
+                              Navigator.canPop(context) == false) {
+                            // If dialog is still open (error case w/o pop? no we pop on success)
+                            setState(() => isSubmitting = false);
+                          }
+                        }
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Add'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) {
-                if (type == ConfigType.role) {
-                  ref.read(configServiceProvider.notifier).addRole(value);
-                } else {
-                  ref.read(configServiceProvider.notifier).addSection(value);
-                }
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }

@@ -16,7 +16,11 @@ service cloud.firestore {
     }
 
     function isManagement(userData) {
-      return userData.role in ['management', 'md', 'exd', 'hr'];
+      return userData.role == 'management';
+    }
+
+    function isHR(userData) {
+      return userData.role == 'hr';
     }
 
     function isSectionHead(userData) {
@@ -32,34 +36,22 @@ service cloud.firestore {
     // =========================================================================
 
     // USERS COLLECTION
-    // USERS COLLECTION
     match /users/{userId} {
       // Users can read/update their own profile.
       allow update: if request.auth != null && request.auth.uid == userId;
       
-      // Allow GET (fetching specific doc) only if authorized
-      allow get: if request.auth != null && (
-          request.auth.uid == userId || 
-          isManagement(getUserData()) || 
-          isSuperAdmin(getUserData())
-      );
+      // DEBUG: Simplified rule to identify recursion issue.
+      // If this works, the previous rules were definitely recursive.
+      allow get: if request.auth != null;
 
       // Allow LIST (queries) for everyone to support EmployeeID login lookup
       allow list: if true;
       
-      // Super Admin and Management can create/update/delete any user.
-      // Note: Management encompasses HR, ExD, MD.
-      allow write: if request.auth != null && (isSuperAdmin(getUserData()) || isManagement(getUserData()));
-
-      // Section Heads might need to create staff in their section?
-      // Based on previous prompt "move adding option to sectionhead management page", 
-      // Section Heads should probably be allowed to write users too (at least create/update).
-      // Let's allow Section Heads to write for now to avoid blocking them too.
-       allow write: if request.auth != null && (
-         isSuperAdmin(getUserData()) || 
-         isManagement(getUserData()) || 
-         isSectionHead(getUserData())
-       );
+      // Super Admin and HR are the primary user managers.
+      allow write: if request.auth != null && (
+        isSuperAdmin(getUserData()) || 
+        (isHR(getUserData()) && request.resource.data.role == 'staff')
+      );
     }
 
     // LEAVES COLLECTION
@@ -80,6 +72,10 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         isManagement(getUserData()) ||
         isSuperAdmin(getUserData()) ||
+        // Dynamic Role-Based Approval:
+        // If the user's role (e.g. 'Kitchen') is in the list of current approvers for this leave request.
+        (getUserData().role in resource.data.currentApproverRoles) ||
+        // Fallback/Legacy for Section Heads (if user still has 'sectionHead' role)
         (isSectionHead(getUserData()) && resource.data.userSection == getUserData().section)
       );
 

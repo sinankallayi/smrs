@@ -62,8 +62,12 @@ class LeaveFlowService extends _$LeaveFlowService {
   >
   getInitialState(String requestorRole) async {
     final config = await future;
+    // Normalize logic: trim, lowercase, remove spaces
+    String normalize(String r) => r.trim().toLowerCase().replaceAll(' ', '');
+    final target = normalize(requestorRole);
+
     final workflow = config.workflows.firstWhere(
-      (w) => w.requestorRole == requestorRole,
+      (w) => normalize(w.requestorRole) == target,
       orElse: () => const LeaveWorkflow(requestorRole: '', steps: []),
     );
 
@@ -90,8 +94,12 @@ class LeaveFlowService extends _$LeaveFlowService {
   >
   getNextState(String requestorRole, int currentStepIndex) async {
     final config = await future;
+    // Normalize logic
+    String normalize(String r) => r.trim().toLowerCase().replaceAll(' ', '');
+    final target = normalize(requestorRole);
+
     final workflow = config.workflows.firstWhere(
-      (w) => w.requestorRole == requestorRole,
+      (w) => normalize(w.requestorRole) == target,
       orElse: () => const LeaveWorkflow(requestorRole: '', steps: []),
     );
 

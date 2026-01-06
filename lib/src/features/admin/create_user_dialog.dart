@@ -24,16 +24,10 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
 
   String? _selectedRole;
   String? _selectedSection;
+  String? _selectedDesignation; // For Manager Titles
   bool _isLoading = false;
   bool _isActive = true;
   bool _initialized = false;
-
-  bool get _shouldShowEmployeeId {
-    if (_selectedRole == null) return false;
-    // Show for all roles that are NOT Super Admin
-    // Based on user request: management, managers (md/exd/hr), sectionhead, staff
-    return _selectedRole != AppRoles.superAdmin;
-  }
 
   @override
   void initState() {
@@ -41,15 +35,11 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     if (widget.userToEdit != null) {
       _nameController.text = widget.userToEdit!.name;
       _emailController.text = widget.userToEdit!.email;
-      // Note: userToEdit.employeeId will rely on generated code update
-      // If build_runner hasn't run yet, this might show an error in IDE but is correct code.
-      // We can use dynamic dispatch or just wait for build.
-      // For safety during transition, we might try to read staffId if employeeId is missing?
-      // But we renamed the field in UserModel, so we must wait for build.
       _employeeIdController.text = widget.userToEdit!.employeeId ?? '';
       _isActive = widget.userToEdit!.isActive;
       _selectedRole = widget.userToEdit!.role;
       _selectedSection = widget.userToEdit!.section;
+      _selectedDesignation = widget.userToEdit!.designation;
       _initialized = true;
     }
   }
@@ -91,31 +81,28 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Employee ID Field
-                      if (_shouldShowEmployeeId) ...[
-                        TextFormField(
-                          controller: _employeeIdController,
-                          style: TextStyle(color: textColor),
-                          decoration: InputDecoration(
-                            labelText: 'Employee ID',
-                            labelStyle: TextStyle(color: hintColor),
-                            filled: true,
-                            fillColor: fillColor,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
+                      // Employee ID Field - Always visible and required
+                      TextFormField(
+                        controller: _employeeIdController,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          labelText: 'Employee ID',
+                          labelStyle: TextStyle(color: hintColor),
+                          filled: true,
+                          fillColor: fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
                           ),
-                          validator: (v) {
-                            if (_shouldShowEmployeeId &&
-                                (v == null || v.isEmpty)) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
                         ),
-                        const SizedBox(height: 16),
-                      ],
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _nameController,
@@ -179,11 +166,12 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                                   .where((r) => r != AppRoles.superAdmin)
                                   .toList();
 
-                          if (validRoles.isEmpty)
+                          if (validRoles.isEmpty) {
                             return Text(
                               'No roles available',
                               style: TextStyle(color: textColor),
                             );
+                          }
 
                           // Initialize selectedRole for new users if not set
                           if (!_initialized &&
@@ -195,12 +183,47 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                           }
 
                           final displayRoles = [...validRoles];
+
                           if (_selectedRole != null &&
                               !displayRoles.contains(_selectedRole)) {
                             displayRoles.add(_selectedRole!);
                           }
 
-                          if (displayRoles.length > 1) {
+                          if (displayRoles.isNotEmpty) {
+                            if (_selectedRole == null) {
+                              _selectedRole = displayRoles.first;
+                            }
+
+                            // If only 1 role is available (e.g. Strict Section Head), show it as Text
+                            if (displayRoles.length == 1) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                  horizontal: 4.0,
+                                ),
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Role',
+                                    labelStyle: TextStyle(color: hintColor),
+                                    filled: true,
+                                    fillColor: fillColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedRole!.toUpperCase(),
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
                             return DropdownButtonFormField<String>(
                               value: _selectedRole,
                               style: TextStyle(color: textColor),
@@ -231,13 +254,13 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                               onChanged: (v) {
                                 setState(() {
                                   _selectedRole = v;
+                                  // Reset dependent fields when role changes
+                                  _selectedSection = null;
+                                  _selectedDesignation = null;
                                 });
                               },
                               validator: (v) => v == null ? 'Required' : null,
                             );
-                          } else if (displayRoles.isNotEmpty) {
-                            _selectedRole = displayRoles.first;
-                            return const SizedBox.shrink();
                           }
                           return const SizedBox.shrink();
                         },
@@ -250,12 +273,65 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
 
                       const SizedBox(height: 16),
 
+                      // 1. MANAGER FLOW: Show "Manager Title" Dropdown - Sourced from Roles
+                      if (_selectedRole == AppRoles.manager)
+                        rolesAsync.when(
+                          data: (managerTitles) {
+                            if (managerTitles.isEmpty)
+                              return const SizedBox.shrink();
+
+                            // Exclude strict 'manager' string from titles unless explicitly desired
+                            final titles = managerTitles
+                                .where((t) => t != AppRoles.manager)
+                                .toList();
+
+                            if (titles.isEmpty) return const SizedBox.shrink();
+
+                            return DropdownButtonFormField<String>(
+                              value: _selectedDesignation,
+                              style: TextStyle(color: textColor),
+                              dropdownColor: isDark
+                                  ? Colors.grey[900]
+                                  : Colors.white,
+                              decoration: InputDecoration(
+                                labelText: 'Manager Title',
+                                labelStyle: TextStyle(color: hintColor),
+                                filled: true,
+                                fillColor: fillColor,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: titles
+                                  .map(
+                                    (t) => DropdownMenuItem<String>(
+                                      value: t,
+                                      child: Text(
+                                        t.toUpperCase(),
+                                        style: TextStyle(color: textColor),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedDesignation = v),
+                              validator: (v) =>
+                                  (_selectedRole == AppRoles.manager &&
+                                      v == null)
+                                  ? 'Required'
+                                  : null,
+                            );
+                          },
+                          error: (e, _) => const SizedBox.shrink(),
+                          loading: () => const LinearProgressIndicator(),
+                        ),
+
+                      // 2. SECTION HEAD & STAFF FLOW: Show "Section" Dropdown
                       if (_selectedRole == AppRoles.sectionHead ||
                           _selectedRole == AppRoles.staff)
                         sectionsAsync.when(
                           data: (sections) {
-                            // Ensure selected section is valid
-
                             return DropdownButtonFormField<String>(
                               value: _selectedSection,
                               style: TextStyle(color: textColor),
@@ -286,8 +362,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                               onChanged: (v) =>
                                   setState(() => _selectedSection = v),
                               validator: (v) {
-                                if ((_selectedRole == AppRoles.sectionHead ||
-                                        _selectedRole == AppRoles.staff) &&
+                                if (_selectedRole == AppRoles.sectionHead &&
                                     v == null) {
                                   return 'Required';
                                 }
@@ -296,7 +371,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                             );
                           },
                           error: (e, _) => Text(
-                            'Error loading sections: $e',
+                            'Error: $e',
                             style: TextStyle(color: textColor),
                           ),
                           loading: () => const LinearProgressIndicator(),
@@ -334,7 +409,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _saveUser,
+                  onPressed: _isLoading ? null : () => _saveUser(),
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,
@@ -352,7 +427,6 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   }
 
   Future<void> _saveUser() async {
-    // Safety check: ensure role is selected
     if (_selectedRole == null) {
       ScaffoldMessenger.of(
         context,
@@ -364,6 +438,11 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     setState(() => _isLoading = true);
 
     try {
+      // Strict mapping:
+      // Role is ALWAYS the System Role (_selectedRole).
+      // Designation is passed for Managers.
+      // Section is passed for Section Heads.
+
       if (widget.userToEdit == null) {
         await ref
             .read(authControllerProvider.notifier)
@@ -371,8 +450,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
               name: _nameController.text.trim(),
-              role: _selectedRole!, // Safe now due to check above
+              role: _selectedRole!,
               section: _selectedSection,
+              designation: _selectedDesignation,
               employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
                   : _employeeIdController.text.trim(),
@@ -383,8 +463,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
             .updateUser(
               uid: widget.userToEdit!.id,
               name: _nameController.text.trim(),
-              role: _selectedRole!, // Safe now due to check above
+              role: _selectedRole!,
               section: _selectedSection,
+              designation: _selectedDesignation,
               employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
                   : _employeeIdController.text.trim(),
@@ -402,4 +483,4 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-}
+} // End Class

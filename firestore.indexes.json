@@ -55,6 +55,24 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "leaves",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "relevantRoles",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "userSection",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "appliedAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

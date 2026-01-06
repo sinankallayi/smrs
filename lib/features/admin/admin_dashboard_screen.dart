@@ -14,80 +14,89 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rolesAsync = ref.watch(rolesProvider);
+    final sectionsAsync = ref.watch(sectionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
       body: rolesAsync.when(
         data: (roles) {
-          // 1. Managers Card (Between SectionHead and Management)
-          // Exclude SuperAdmin, Management, Staff, and SectionHead
-          final managerRoles = roles.where((r) {
-            return r != AppRoles.superAdmin &&
-                r != AppRoles.management &&
-                r != AppRoles.staff &&
-                r != AppRoles.sectionHead;
-          }).toList();
+          return sectionsAsync.when(
+            data: (sections) {
+              // 1. Managers Card (Between SectionHead and Management)
+              // Exclude SuperAdmin, Management, Staff, and SectionHead
+              // Ensure 'hr' is in the manager roles if it exists
+              final managerRoles = roles.where((r) {
+                return r != AppRoles.superAdmin &&
+                    r != AppRoles.management &&
+                    r != AppRoles.staff &&
+                    r != AppRoles.sectionHead;
+              }).toList();
 
-          return GridView.count(
-            crossAxisCount: 2,
-            padding: const EdgeInsets.all(16),
-            children: [
-              _AdminCard(
-                icon: LucideIcons.briefcase,
-                title: 'Managers',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => UserManagementScreen(
-                      title: 'Managers',
-                      allowedRoles: managerRoles,
+              return GridView.count(
+                crossAxisCount: 2,
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _AdminCard(
+                    icon: LucideIcons.briefcase,
+                    title: 'Managers',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserManagementScreen(
+                          title: 'Managers',
+                          allowedRoles: managerRoles,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              _AdminCard(
-                icon: LucideIcons.shieldAlert, // Different icon for Management
-                title: 'Management',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => UserManagementScreen(
-                      title: 'Management',
-                      allowedRoles: const [
-                        AppRoles.management,
-                      ], // Explicitly pass the single role
+                  _AdminCard(
+                    icon: LucideIcons
+                        .shieldAlert, // Different icon for Management
+                    title: 'Management',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserManagementScreen(
+                          title: 'Management',
+                          allowedRoles: const [
+                            AppRoles.management,
+                          ], // Explicitly pass the single role
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              _AdminCard(
-                icon: LucideIcons.store,
-                title: 'Section Heads',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const UserManagementScreen(
-                      title: 'Section Heads',
-                      allowedRoles: [AppRoles.sectionHead],
+                  _AdminCard(
+                    icon: LucideIcons.store,
+                    title: 'Section Heads',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserManagementScreen(
+                          title: 'Section Heads',
+                          allowedRoles: sections, // Passing sections as roles
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              _AdminCard(
-                icon: LucideIcons.workflow,
-                title: 'Leave Flow',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const LeaveFlowConfigurationScreen(),
+                  _AdminCard(
+                    icon: LucideIcons.workflow,
+                    title: 'Leave Flow',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LeaveFlowConfigurationScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error loading sections: $e')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
+        error: (e, s) => Center(child: Text('Error loading roles: $e')),
       ),
     );
   }

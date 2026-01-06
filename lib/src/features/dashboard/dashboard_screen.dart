@@ -4,6 +4,10 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/user_model.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/leaves/leave_list_screen.dart';
+import '../../features/leaves/section_head_review_screen.dart';
+import '../../features/leaves/manager_review_screen.dart';
+import '../../features/leaves/management_review_screen.dart';
+import '../../features/leaves/hr_review_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import 'home_screen.dart';
 import 'manage_staff_screen.dart';
@@ -60,20 +64,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         } else {
           // Manager/SectionHead: "Review" or "Leaves" (Office)
-          // For Managers, this will be strictly Inbox/History (exclude self)
-          // For SectionHeads, this is their Dashboard
-          finalPages.add(
-            LeaveListScreen(
-              user: user,
-              excludeCurrentUser: [
-                AppRoles.md,
-                AppRoles.exd,
-                AppRoles.hr,
-                AppRoles.management,
-                AppRoles.sectionHead,
-              ].contains(user.role),
-            ),
+
+          // Role Helper Booleans
+          final normalizedRole = user.role.trim().toLowerCase().replaceAll(
+            ' ',
+            '',
           );
+
+          // Strict Checks Only
+          final isSectionHead =
+              normalizedRole == AppRoles.sectionHead.toLowerCase();
+          final isHR = normalizedRole == AppRoles.hr.toLowerCase();
+          final isManagement =
+              normalizedRole == AppRoles.management.toLowerCase();
+          // Any other role is a "Manager"
+          // Any other role is a "Manager"
+
+          if (isSectionHead) {
+            finalPages.add(SectionHeadReviewScreen(user: user));
+          } else if (isHR) {
+            finalPages.add(HRReviewScreen(user: user));
+          } else if (isManagement) {
+            finalPages.add(ManagementReviewScreen(user: user));
+          } else if (normalizedRole == AppRoles.manager.toLowerCase()) {
+            // Strict Manager
+            finalPages.add(ManagerReviewScreen(user: user));
+          } else {
+            // Fallback for undefined roles (e.g. custom roles not mapped) - Treat as Staff/Basic
+            finalPages.add(LeaveListScreen(user: user));
+          }
+
           finalDestinations.add(
             const NavigationDestination(
               icon: Icon(LucideIcons.checkSquare),

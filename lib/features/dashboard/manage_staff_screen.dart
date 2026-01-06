@@ -7,14 +7,17 @@ import '../../features/admin/create_user_dialog.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/glass_container.dart';
 
-class ManageStaffScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/auth_provider.dart';
+
+class ManageStaffScreen extends ConsumerStatefulWidget {
   const ManageStaffScreen({super.key});
 
   @override
-  State<ManageStaffScreen> createState() => _ManageStaffScreenState();
+  ConsumerState<ManageStaffScreen> createState() => _ManageStaffScreenState();
 }
 
-class _ManageStaffScreenState extends State<ManageStaffScreen> {
+class _ManageStaffScreenState extends ConsumerState<ManageStaffScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _showInactive = false;
@@ -39,6 +42,13 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access current user to fully act on restrictions
+    final currentUser = ref.watch(userProfileProvider).valueOrNull;
+    final canManage =
+        currentUser != null &&
+        (currentUser.role == AppRoles.superAdmin ||
+            currentUser.role == AppRoles.hr);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Staff'), centerTitle: true),
       // Move StreamBuilder to the top to access data for filters
@@ -376,27 +386,30 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
                                     ],
                                   ),
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        LucideIcons.edit,
-                                        size: 18,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                      style: IconButton.styleFrom(
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary.withOpacity(0.1),
-                                      ),
-                                      onPressed: () =>
-                                          _showEditStaffDialog(user),
-                                    ),
-                                  ],
-                                ),
+                                trailing: canManage
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              LucideIcons.edit,
+                                              size: 18,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                            style: IconButton.styleFrom(
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.1),
+                                            ),
+                                            onPressed: () =>
+                                                _showEditStaffDialog(user),
+                                          ),
+                                        ],
+                                      )
+                                    : null,
                               ),
                             ),
                           );
@@ -408,37 +421,39 @@ class _ManageStaffScreenState extends State<ManageStaffScreen> {
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80.0),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).primaryColor.withOpacity(0.4),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+      floatingActionButton: canManage
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).primaryColor.withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: FloatingActionButton.extended(
+                  onPressed: _showAddStaffDialog,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  icon: const Icon(LucideIcons.plus, color: Colors.white),
+                  label: const Text(
+                    'Add Staff',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: FloatingActionButton.extended(
-            onPressed: _showAddStaffDialog,
-            backgroundColor: Theme.of(context).primaryColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            icon: const Icon(LucideIcons.plus, color: Colors.white),
-            label: const Text(
-              'Add Staff',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 

@@ -47,7 +47,6 @@ _$LeaveRequestModelImpl _$$LeaveRequestModelImplFromJson(
   ),
   endDate: const TimestampConverter().fromJson(json['endDate'] as Timestamp),
   reason: json['reason'] as String,
-  status: $enumDecode(_$LeaveStatusEnumMap, json['status']),
   currentStage: $enumDecode(_$LeaveStageEnumMap, json['currentStage']),
   appliedAt: const TimestampConverter().fromJson(
     json['appliedAt'] as Timestamp,
@@ -90,7 +89,6 @@ Map<String, dynamic> _$$LeaveRequestModelImplToJson(
   'startDate': const TimestampConverter().toJson(instance.startDate),
   'endDate': const TimestampConverter().toJson(instance.endDate),
   'reason': instance.reason,
-  'status': _$LeaveStatusEnumMap[instance.status]!,
   'currentStage': _$LeaveStageEnumMap[instance.currentStage]!,
   'appliedAt': const TimestampConverter().toJson(instance.appliedAt),
   'currentApproverRoles': instance.currentApproverRoles,
@@ -108,17 +106,6 @@ const _$LeaveTypeEnumMap = {
   LeaveType.lateArrival: 'late_arrival',
   LeaveType.earlyDeparture: 'early_departure',
   LeaveType.shortLeave: 'short_leave',
-};
-
-const _$LeaveStatusEnumMap = {
-  LeaveStatus.pending: 'pending',
-  LeaveStatus.forwarded: 'forwarded',
-  LeaveStatus.managersApproved: 'managersapproved',
-  LeaveStatus.managementApprovedLegacy: 'management_approved',
-  LeaveStatus.sectionHeadForwarded: 'sectionheadforwarded',
-  LeaveStatus.managementApproved: 'managementapproved',
-  LeaveStatus.approved: 'approved',
-  LeaveStatus.rejected: 'rejected',
 };
 
 const _$LeaveStageEnumMap = {

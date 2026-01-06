@@ -16,22 +16,11 @@ class ControllerScreen extends ConsumerWidget {
           title: const Text('Controller'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Roles', icon: Icon(LucideIcons.shield)),
-              Tab(text: 'Sections', icon: Icon(LucideIcons.layoutGrid)),
+              Tab(text: 'Manager Roles', icon: Icon(LucideIcons.shield)),
+              Tab(text: 'Section Roles', icon: Icon(LucideIcons.layoutGrid)),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(LucideIcons.refreshCcw),
-              tooltip: 'Initialize Defaults',
-              onPressed: () {
-                ref.read(configServiceProvider.notifier).initializeDefaults();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Defaults initialized')),
-                );
-              },
-            ),
-          ],
+          actions: [],
         ),
         body: const TabBarView(
           children: [
@@ -90,7 +79,7 @@ class _ConfigList extends ConsumerWidget {
                 onPressed: () => _showAddDialog(context, ref),
                 icon: const Icon(LucideIcons.plus),
                 label: Text(
-                  'Add New ${type == ConfigType.role ? 'Role' : 'Section'}',
+                  'Add New ${type == ConfigType.role ? 'Manager Role' : 'Section Role'}',
                 ),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
@@ -139,7 +128,9 @@ class _ConfigList extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add ${type == ConfigType.role ? 'Role' : 'Section'}'),
+        title: Text(
+          'Add ${type == ConfigType.role ? 'Manager Role' : 'Section Role'}',
+        ),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(

@@ -21,8 +21,8 @@ class LeaveService extends _$LeaveService {
       // Optimization for staff: just their own leaves
       query = query.where('userId', isEqualTo: user.id);
     } else if (user.role == AppRoles.sectionHead) {
-      // Section Heads: OWN leaves OR (Relevant leaves AND same section)
-      // This strict check prevents seeing leaves from other sections even if 'sectionHead' is in relevantRoles
+      // Legacy Code Compatibility:
+      // If we still have users with literal 'sectionHead' role (from old data) or if logic reverts.
       query = query.where(
         Filter.or(
           Filter('userId', isEqualTo: user.id),
@@ -33,7 +33,9 @@ class LeaveService extends _$LeaveService {
         ),
       );
     } else {
-      // For others (Management, etc), show leaves they created OR leaves relevant to them
+      // For others (Management, specific Manager Roles like HR, and dynamic Section Heads like 'Kitchen'),
+      // show leaves they created OR leaves relevant to them.
+      // E.g. If user.role is 'Kitchen', and relevantRoles contains 'Kitchen', they see it.
       query = query.where(
         Filter.or(
           Filter('userId', isEqualTo: user.id),
@@ -49,6 +51,15 @@ class LeaveService extends _$LeaveService {
     });
   }
 
+  /// Helper to resolve dynamic roles (e.g. converting 'sectionHead' -> 'Kitchen')
+  List<String> _resolveRoles(List<String> roles, String? section) {
+    if (section == null) return roles;
+    return roles.map((r) {
+      if (r == AppRoles.sectionHead) return section;
+      return r;
+    }).toList();
+  }
+
   Future<void> createLeave(LeaveRequestModel leave) async {
     // Fetch dynamic initial state
     final flowService = ref.read(leaveFlowServiceProvider.notifier);
@@ -58,12 +69,21 @@ class LeaveService extends _$LeaveService {
 
     if (initialState != null) {
       // Dynamic Flow
+      final resolvedApprovers = _resolveRoles(
+        initialState.approverRoles,
+        leave.userSection,
+      );
+      final resolvedViewers = _resolveRoles(
+        initialState.viewerRoles,
+        leave.userSection,
+      );
+
       newLeave = leave.copyWith(
-        currentApproverRoles: initialState.approverRoles,
-        currentViewerRoles: initialState.viewerRoles,
+        currentApproverRoles: resolvedApprovers,
+        currentViewerRoles: resolvedViewers,
         relevantRoles: [
-          ...initialState.approverRoles,
-          ...initialState.viewerRoles,
+          ...resolvedApprovers,
+          ...resolvedViewers,
         ].toSet().toList(),
         currentStepIndex: initialState.stepIndex,
         currentStepName: initialState.stepName,
@@ -74,7 +94,7 @@ class LeaveService extends _$LeaveService {
       if (leave.userRole != AppRoles.staff) {
         newLeave = leave.copyWith(
           currentStage: LeaveStage.managementReview,
-          status: LeaveStatus.forwarded,
+          status: LeaveStatus.pending,
         );
       }
     }
@@ -108,22 +128,40 @@ class LeaveService extends _$LeaveService {
       );
 
       if (nextState != null) {
-        // Move to next step
-        nextApprovers = nextState.approverRoles;
-        nextViewers = nextState.viewerRoles;
+        // Move to next step by default
+        final resolvedApprovers = _resolveRoles(
+          nextState.approverRoles,
+          leave.userSection,
+        );
+        final resolvedViewers = _resolveRoles(
+          nextState.viewerRoles,
+          leave.userSection,
+        );
+
+        nextApprovers = resolvedApprovers;
+        nextViewers = resolvedViewers;
         nextStepIndex = nextState.stepIndex;
         nextStepName = nextState.stepName;
 
-        newStatus = LeaveStatus.forwarded;
-        if (actor.role == AppRoles.sectionHead) {
-          newStatus = LeaveStatus.sectionHeadForwarded;
-        } else if (actor.role == AppRoles.management) {
-          // Logic for intermediate management steps?
+        newStatus = LeaveStatus.pending;
+
+        // If the actor is part of the "Management" group (Management only),
+        // their Approval overrides any future steps defined in the config.
+        final isManagementAuthority = [
+          AppRoles.management,
+        ].contains(actor.role);
+
+        if (isManagementAuthority) {
+          newStatus = LeaveStatus.approved;
+          // Clear future approvers to prevent further actions
+          nextApprovers = [];
         }
       } else {
         // End of workflow -> Approved
         newStatus = LeaveStatus.approved;
         // Clear approvers as no further action needed
+        // nextApprovers = []; // Keep them empty or set to empty if not already?
+        // Actually, if it's approved, we usually want to stop acts.
         nextApprovers = [];
       }
     }

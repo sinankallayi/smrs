@@ -219,12 +219,15 @@ class HomeScreen extends ConsumerWidget {
                             .length;
 
                         // Forwarded to Inbox: Specifically from Section Heads
+                        // Inferred from stage + status=pending
                         final inboxForwarded = inboxLeaves
                             .where(
                               (l) =>
                                   l.currentStage ==
                                       LeaveStage.managementReview &&
-                                  l.status == LeaveStatus.sectionHeadForwarded,
+                                  l.status == LeaveStatus.pending &&
+                                  (l.userRole == AppRoles.sectionHead ||
+                                      l.userRole == AppRoles.staff),
                             )
                             .length;
 
@@ -233,24 +236,14 @@ class HomeScreen extends ConsumerWidget {
                             .where((l) => l.userId == user.id)
                             .toList();
 
-                        // My Pending: Waiting for approval (could be Management Review if submitted directly)
+                        // My Pending: Waiting for approval
                         final myPending = myLeaves
-                            .where(
-                              (l) =>
-                                  l.status == LeaveStatus.pending ||
-                                  l.status == LeaveStatus.forwarded ||
-                                  l.status == LeaveStatus.sectionHeadForwarded,
-                            )
+                            .where((l) => l.status == LeaveStatus.pending)
                             .length;
 
                         // My Approved
                         final myApproved = myLeaves
-                            .where(
-                              (l) =>
-                                  l.status == LeaveStatus.approved ||
-                                  l.status == LeaveStatus.managementApproved ||
-                                  l.status == LeaveStatus.managersApproved,
-                            )
+                            .where((l) => l.status == LeaveStatus.approved)
                             .length;
 
                         return Column(

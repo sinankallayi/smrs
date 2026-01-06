@@ -108,11 +108,6 @@ const _$LeaveTypeEnumMap = {
 
 const _$LeaveStatusEnumMap = {
   LeaveStatus.pending: 'pending',
-  LeaveStatus.forwarded: 'forwarded',
-  LeaveStatus.managersApproved: 'managersapproved',
-  LeaveStatus.managementApprovedLegacy: 'management_approved',
-  LeaveStatus.sectionHeadForwarded: 'sectionheadforwarded',
-  LeaveStatus.managementApproved: 'managementapproved',
   LeaveStatus.approved: 'approved',
   LeaveStatus.rejected: 'rejected',
 };

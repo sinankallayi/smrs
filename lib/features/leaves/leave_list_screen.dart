@@ -403,20 +403,30 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   }
 
   _EffectiveStatusType _getEffectiveStatusType() {
-    if (widget.leave.status == LeaveStatus.approved) {
-      return _EffectiveStatusType.approved;
-    } else if (widget.leave.status == LeaveStatus.rejected) {
-      return _EffectiveStatusType.rejected;
-    }
+    // Do not return early for Rejected. We must check hierarchy to see if a higher rank Approved it.
+    // However, if it's strictly Approved (final), we can trust it?
+    // Actually, getting rid of both is safer to enforce the "Highest Rank Rule" visually.
+    // If the DB status is 'Approved', the highest rank entry SHOULD be an approval anyway.
+
+    // We remove the db-status checks to rely purely on the timeline hierarchy for "My Decision" logic
+    // UNLESS the timeline is empty, then we fall back to status.
 
     // Intermediate States: Check Hierarchy (Management > Managers > Section Head)
-    int getRoleRank(String role) {
-      if (role == AppRoles.management) return 3;
-      if ([AppRoles.md, AppRoles.exd, AppRoles.hr].contains(role)) return 2;
-      // Check for custom manager roles (anything not staff/SH/management)
-      if (![AppRoles.staff, AppRoles.sectionHead].contains(role)) return 2;
-      if (role == AppRoles.sectionHead) return 1;
-      return 0;
+    // Order: SuperAdmin(4) > Management(3) > Managers(HR/Floor/Store)(2) > SectionHead(1) > Staff(0)
+    int getRoleRank(String roleRaw) {
+      final role = roleRaw.toLowerCase();
+      if (role == AppRoles.superAdmin.toLowerCase()) return 4;
+      if (role == AppRoles.management.toLowerCase()) return 3;
+
+      // All managers (HR, Floor, Store, etc.) -> Rank 2
+      if (![
+        AppRoles.staff.toLowerCase(),
+        AppRoles.sectionHead.toLowerCase(),
+      ].contains(role))
+        return 2;
+
+      if (role == AppRoles.sectionHead.toLowerCase()) return 1;
+      return 0; // Staff
     }
 
     TimelineEntry? highestRankEntry;
@@ -424,21 +434,39 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
 
     for (var entry in widget.leave.timeline) {
       final rank = getRoleRank(entry.byUserRole);
+      // Strictly Higher Rank wins (Overrides generic timeline order)
       if (rank > highestRank) {
         highestRank = rank;
         highestRankEntry = entry;
-      } else if (rank == highestRank) {
+      }
+      // Same Rank? Latest action wins (Standard conflict resolution)
+      else if (rank == highestRank) {
         highestRankEntry = entry;
       }
     }
 
     if (highestRankEntry != null) {
       final action = highestRankEntry.status.toLowerCase();
-      if (action == 'approve' || action == 'forward') {
-        return _EffectiveStatusType.approved;
+      if (action == 'approve') {
+        // Only show APPROVED if:
+        // 1. High Authority (Management/SuperAdmin) approved it (Rank >= 3)
+        // 2. OR The DB status is strictly 'approved' (Finalized by workflow)
+        if (highestRank >= 3 || widget.leave.status == LeaveStatus.approved) {
+          return _EffectiveStatusType.approved;
+        }
+        return _EffectiveStatusType.pending; // Intermediate approval
       } else if (action == 'reject') {
         return _EffectiveStatusType.rejected;
       }
+      // 'forward' or any other status falls through to PENDING
+    }
+
+    // Fallback: If no relevant timeline entry found (e.g. legacy data), trust the DB status
+    if (widget.leave.status == LeaveStatus.rejected) {
+      return _EffectiveStatusType.rejected;
+    }
+    if (widget.leave.status == LeaveStatus.approved) {
+      return _EffectiveStatusType.approved;
     }
 
     return _EffectiveStatusType.pending;
@@ -546,10 +574,10 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
                             ),
                           ),
                         )
-                      else if ([
-                        AppRoles.md,
-                        AppRoles.exd,
-                        AppRoles.hr,
+                      else if (![
+                        AppRoles.staff,
+                        AppRoles.sectionHead,
+                        AppRoles.management,
                       ].contains(widget.leave.userRole))
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -816,14 +844,6 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
   }
 
   bool _canAct() {
-    // 0. Global Check: If request is already Finalized (Approved), NO ONE can act.
-    // Note: 'Rejected' is removed from here to allow "Independent Opinions" as requested.
-    if (widget.leave.status == LeaveStatus.approved ||
-        widget.leave.status == LeaveStatus.managersApproved ||
-        widget.leave.status == LeaveStatus.managementApproved) {
-      return false;
-    }
-
     // 0.1 Check if I have ALREADY acted (Audit Trail check)
     // If I am in the timeline, I shouldn't see buttons again.
     final hasActed = widget.leave.timeline.any(
@@ -923,18 +943,7 @@ class _LeaveCardState extends ConsumerState<_LeaveCard> {
               'Reject Request',
             ),
           ),
-          const SizedBox(width: 8),
-          _actionBtn(
-            context,
-            'Forward',
-            scheme.primary,
-            () => _showActionDialog(
-              context,
-              ref,
-              LeaveAction.forward,
-              'Forward to Management',
-            ),
-          ),
+
           const SizedBox(width: 8),
           _actionBtn(
             context,

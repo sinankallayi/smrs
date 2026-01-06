@@ -93,10 +93,9 @@ class OfficeHistoryScreen extends ConsumerWidget {
                             user: user,
                             filterStages: null,
                             excludeCurrentUser: true,
-                            targetRoleFilter: const [
-                              AppRoles.md,
-                              AppRoles.exd,
-                              AppRoles.hr,
+                            excludeRoleFilter: const [
+                              AppRoles.staff,
+                              AppRoles.sectionHead,
                             ],
                           ),
                       ],

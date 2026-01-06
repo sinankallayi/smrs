@@ -19,16 +19,6 @@ class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
 enum LeaveStatus {
   @JsonValue('pending')
   pending,
-  @JsonValue('forwarded')
-  forwarded,
-  @JsonValue('managersapproved')
-  managersApproved,
-  @JsonValue('management_approved') // Support for existing records
-  managementApprovedLegacy,
-  @JsonValue('sectionheadforwarded')
-  sectionHeadForwarded,
-  @JsonValue('managementapproved')
-  managementApproved,
   @JsonValue('approved')
   approved,
   @JsonValue('rejected')
@@ -80,6 +70,8 @@ enum LeaveType {
 
 @freezed
 class LeaveRequestModel with _$LeaveRequestModel {
+  const LeaveRequestModel._();
+
   const factory LeaveRequestModel({
     required String id,
     required String userId,
@@ -93,7 +85,7 @@ class LeaveRequestModel with _$LeaveRequestModel {
     required String reason,
 
     // Workflow State
-    required LeaveStatus status,
+    // required LeaveStatus status, // REMOVED
     required LeaveStage currentStage,
 
     @TimestampConverter() required DateTime appliedAt,
@@ -116,5 +108,29 @@ class LeaveRequestModel with _$LeaveRequestModel {
   factory LeaveRequestModel.fromJson(Map<String, dynamic> json) =>
       _$LeaveRequestModelFromJson(json);
 
-  Map<String, dynamic> toJson();
+  /// Derived Status based on Timeline and Workflow State
+  LeaveStatus get effectiveStatus {
+    // 1. Check for Management Actions (Override)
+    // If Management Approved anytime, it's Approved.
+    final managementApproved = timeline.any(
+      (e) =>
+          e.byUserRole == AppRoles.management &&
+          e.status.toLowerCase() == 'approve',
+    );
+    if (managementApproved) return LeaveStatus.approved;
+
+    // 2. Check for Rejections
+    // If Management Rejected, it's Rejected (unless subseeded by a later approval?
+    // Unlikely, assume Reject is final if no Approve present).
+    // If ANYONE rejected, and it wasn't overridden by Management, it's Rejected.
+    final anyRejected = timeline.any((e) => e.status.toLowerCase() == 'reject');
+    if (anyRejected) return LeaveStatus.rejected;
+
+    // 3. Check for Completion
+    // If no approvers left and not rejected -> Approved
+    if (currentApproverRoles.isEmpty) return LeaveStatus.approved;
+
+    // 4. Otherwise Pending
+    return LeaveStatus.pending;
+  }
 }

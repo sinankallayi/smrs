@@ -219,12 +219,21 @@ class HomeScreen extends ConsumerWidget {
                             .length;
 
                         // Forwarded to Inbox: Specifically from Section Heads
+                        // We track this by checking stage + status=pending (since SH forwarded it)
+                        // This logic is approximate if status is simplified.
+                        // Assuming LeaveStage.managementReview implies it reached management.
                         final inboxForwarded = inboxLeaves
                             .where(
                               (l) =>
                                   l.currentStage ==
                                       LeaveStage.managementReview &&
-                                  l.status == LeaveStatus.sectionHeadForwarded,
+                                  l.effectiveStatus == LeaveStatus.pending &&
+                                  // Previously checked sectionHeadForwarded.
+                                  // Now we infer it if role is sectionHead? or just count all pending in mgmt review?
+                                  // User asked for "pending, rejected, approved".
+                                  // So for inbox, "From Sections" might just be those in management review from lower roles?
+                                  (l.userRole == AppRoles.sectionHead ||
+                                      l.userRole == AppRoles.staff),
                             )
                             .length;
 
@@ -233,23 +242,17 @@ class HomeScreen extends ConsumerWidget {
                             .where((l) => l.userId == user.id)
                             .toList();
 
-                        // My Pending: Waiting for approval (could be Management Review if submitted directly)
+                        // My Pending: Waiting for approval
                         final myPending = myLeaves
                             .where(
-                              (l) =>
-                                  l.status == LeaveStatus.pending ||
-                                  l.status == LeaveStatus.forwarded ||
-                                  l.status == LeaveStatus.sectionHeadForwarded,
+                              (l) => l.effectiveStatus == LeaveStatus.pending,
                             )
                             .length;
 
                         // My Approved
                         final myApproved = myLeaves
                             .where(
-                              (l) =>
-                                  l.status == LeaveStatus.approved ||
-                                  l.status == LeaveStatus.managementApproved ||
-                                  l.status == LeaveStatus.managersApproved,
+                              (l) => l.effectiveStatus == LeaveStatus.approved,
                             )
                             .length;
 

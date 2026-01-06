@@ -9,6 +9,7 @@ class AppRoles {
   static const String exd = 'exd';
   static const String hr = 'hr';
   static const String sectionHead = 'sectionHead';
+  static const String manager = 'manager';
   static const String management = 'management';
   static const String staff = 'staff';
 
@@ -42,8 +43,9 @@ class UserModel with _$UserModel {
     required String id,
     required String email,
     required String name,
-    required String role, // Changed from UserRole
-    String? section, // Changed from UserSection
+    required String role, // STRICT: 'manager', 'sectionHead', 'hr', etc.
+    String? section, // For Section Heads
+    String? designation, // For Managers (e.g. 'Store Manager')
     @JsonKey(readValue: _readEmployeeId) String? employeeId,
     String? createdBy,
     @Default(true) bool isActive,

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../models/user_model.dart';
 
 part 'config_service.g.dart';
 
@@ -23,10 +24,14 @@ class ConfigService extends _$ConfigService {
 
   Stream<List<String>> getRoles() {
     return _settingsColl.doc('roles').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
+      if (!snapshot.exists) return [AppRoles.hr];
       final data = snapshot.data();
-      if (data == null || !data.containsKey('values')) return [];
-      return List<String>.from(data['values']);
+      if (data == null || !data.containsKey('values')) return [AppRoles.hr];
+      final roles = List<String>.from(data['values']);
+      if (!roles.contains(AppRoles.hr)) {
+        roles.add(AppRoles.hr);
+      }
+      return roles;
     });
   }
 
@@ -101,39 +106,5 @@ class ConfigService extends _$ConfigService {
         }
       }
     });
-  }
-
-  // Initialize defaults if empty
-  Future<void> initializeDefaults() async {
-    final rolesSnapshot = await _settingsColl.doc('roles').get();
-    if (!rolesSnapshot.exists) {
-      await _settingsColl.doc('roles').set({
-        'values': [
-          'superAdmin',
-          'md',
-          'exd',
-          'hr',
-          'sectionHead',
-          'management',
-          'staff',
-        ],
-      });
-    } else {
-      // Ensure 'management' role exists (migration)
-      final existingRoles = List<String>.from(
-        rolesSnapshot.data()?['values'] ?? [],
-      );
-      if (!existingRoles.contains('management')) {
-        existingRoles.add('management');
-        await _settingsColl.doc('roles').update({'values': existingRoles});
-      }
-    }
-
-    final sectionsSnapshot = await _settingsColl.doc('sections').get();
-    if (!sectionsSnapshot.exists) {
-      await _settingsColl.doc('sections').set({
-        'values': ['bakery', 'fancy', 'vegetable'],
-      });
-    }
   }
 }

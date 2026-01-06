@@ -68,7 +68,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       // If not Staff, route to Management Review
       if (userDetails.role != AppRoles.staff) {
         initialStage = LeaveStage.managementReview;
-        initialStatus = LeaveStatus.forwarded;
+        initialStatus = LeaveStatus.pending;
       }
 
       final leave = LeaveRequestModel(

@@ -63,12 +63,10 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
 
       // Determine initial stage based on role
       LeaveStage initialStage = LeaveStage.sectionHeadReview;
-      LeaveStatus initialStatus = LeaveStatus.pending;
 
       // If not Staff, route to Management Review
       if (userDetails.role != AppRoles.staff) {
         initialStage = LeaveStage.managementReview;
-        initialStatus = LeaveStatus.forwarded;
       }
 
       final leave = LeaveRequestModel(
@@ -82,7 +80,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
-        status: initialStatus,
+
         currentStage: initialStage,
         appliedAt: DateTime.now(),
         timeline: [],

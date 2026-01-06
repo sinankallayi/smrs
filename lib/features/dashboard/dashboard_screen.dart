@@ -65,12 +65,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           finalPages.add(
             LeaveListScreen(
               user: user,
-              excludeCurrentUser: [
-                AppRoles.md,
-                AppRoles.exd,
-                AppRoles.hr,
+              excludeCurrentUser: ![
+                AppRoles.staff,
                 AppRoles.management,
-                AppRoles.sectionHead,
+                AppRoles.superAdmin,
               ].contains(user.role),
             ),
           );

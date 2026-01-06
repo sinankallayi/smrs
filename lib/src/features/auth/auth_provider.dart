@@ -81,6 +81,7 @@ class AuthController extends _$AuthController {
     required String name,
     required String role,
     String? section,
+    String? designation, // Added designation
   }) async {
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
@@ -91,8 +92,8 @@ class AuthController extends _$AuthController {
       name: name,
       role: role,
       section: section,
-      employeeId:
-          null, // Register is usually for self-register, maybe we don't expose staffId here or make it optional? Assuming null for now or need to add it to params.
+      designation: designation, // Persist designation
+      employeeId: null,
     );
 
     await FirebaseFirestore.instance
@@ -107,15 +108,17 @@ class AuthController extends _$AuthController {
     required String name,
     required String role,
     String? section,
+    String? designation, // Added designation
     String? employeeId,
   }) async {
     if (employeeId != null) {
       final isUnique = await checkEmployeeIdUnique(employeeId);
       if (!isUnique) throw Exception('Employee ID already exists');
     }
-    // Connect to a secondary Firebase app to create user without logging out the admin
+
+    final appName = 'tempRegister_${DateTime.now().microsecondsSinceEpoch}';
     FirebaseApp tempApp = await Firebase.initializeApp(
-      name: 'temporaryRegister',
+      name: appName,
       options: Firebase.app().options,
     );
 
@@ -134,6 +137,7 @@ class AuthController extends _$AuthController {
         name: name,
         role: role,
         section: section,
+        designation: designation, // Persist designation
         employeeId: employeeId,
       );
 
@@ -151,6 +155,7 @@ class AuthController extends _$AuthController {
     String? name,
     String? role,
     String? section,
+    String? designation, // Added designation
     String? employeeId,
     bool? isActive,
   }) async {
@@ -161,15 +166,22 @@ class AuthController extends _$AuthController {
       final isUnique = await checkEmployeeIdUnique(employeeId, excludeUid: uid);
       if (!isUnique) throw Exception('Employee ID already exists');
       data['employeeId'] = employeeId;
-      // Also update or set staffId for backward compatibility?
-      // User asked to CHANGE staffId into employeeId.
-      // We can just write employeeId. Old staffId fields remain as legacy.
     }
+
+    // Logic for Section Updates
     if (section != null) {
       data['section'] = section;
     } else if (role != AppRoles.sectionHead && role != null) {
       // If role changed to non-sectionHead, remove section
       data['section'] = FieldValue.delete();
+    }
+
+    // Logic for Designation Updates
+    if (designation != null) {
+      data['designation'] = designation;
+    } else if (role != AppRoles.manager && role != null) {
+      // If role changed to non-manager, remove designation
+      data['designation'] = FieldValue.delete();
     }
 
     if (isActive != null) {

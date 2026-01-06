@@ -57,7 +57,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
   @override
   Widget build(BuildContext context) {
     final rolesAsync = ref.watch(rolesProvider);
-    final sectionsAsync = ref.watch(sectionsProvider);
+    final sectionsAsync = ref.watch(
+      sectionsProvider,
+    ); // Move this up effectively (it was already here but we use it more centrally)
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final glassColor = isDark ? Colors.black : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -172,12 +174,23 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
 
                       rolesAsync.when(
                         data: (roles) {
-                          // Filter roles if allowedRoles is set
-                          final validRoles =
-                              widget.allowedRoles ??
-                              roles
-                                  .where((r) => r != AppRoles.superAdmin)
-                                  .toList();
+                          // Filter roles based on permissions
+                          final currentUser = ref
+                              .watch(userProfileProvider)
+                              .valueOrNull;
+                          List<String> validRoles = [];
+
+                          if (currentUser?.role == AppRoles.hr) {
+                            // HR can only create Staff
+                            validRoles = [AppRoles.staff];
+                          } else {
+                            // SuperAdmin (or default fallthrough if logic changes)
+                            validRoles =
+                                widget.allowedRoles ??
+                                roles
+                                    .where((r) => r != AppRoles.superAdmin)
+                                    .toList();
+                          }
 
                           if (validRoles.isEmpty)
                             return Text(
@@ -250,12 +263,12 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
 
                       const SizedBox(height: 16),
 
-                      if (_selectedRole == AppRoles.sectionHead ||
-                          _selectedRole == AppRoles.staff)
+                      // Only show Section dropdown if it's explicitly 'staff' role
+                      // OR if we are in a legacy mode where sectionHead is still used as a role string (unlikely but safe)
+                      // If the selected role IS a section name, we don't show this dropdown (section is implied).
+                      if (_selectedRole == AppRoles.staff)
                         sectionsAsync.when(
                           data: (sections) {
-                            // Ensure selected section is valid
-
                             return DropdownButtonFormField<String>(
                               value: _selectedSection,
                               style: TextStyle(color: textColor),
@@ -286,8 +299,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                               onChanged: (v) =>
                                   setState(() => _selectedSection = v),
                               validator: (v) {
-                                if ((_selectedRole == AppRoles.sectionHead ||
-                                        _selectedRole == AppRoles.staff) &&
+                                if (_selectedRole == AppRoles.staff &&
                                     v == null) {
                                   return 'Required';
                                 }
@@ -325,6 +337,7 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               ),
             ),
             const SizedBox(height: 20),
+            // ... (keeping the buttons)
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -334,7 +347,9 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _saveUser,
+                  onPressed: _isLoading
+                      ? null
+                      : () => _saveUser(sectionsAsync.valueOrNull ?? []),
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,
@@ -351,9 +366,13 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     );
   }
 
-  Future<void> _saveUser() async {
+  Future<void> _saveUser(List<String> sections) async {
     // Safety check: ensure role is selected
     if (_selectedRole == null) {
+      if (widget.allowedRoles != null && widget.allowedRoles!.isNotEmpty) {
+        // If allowedRoles only has 1 and it's management, it might not be set in UI if hidden?
+        // actually UI logic sets it if single.
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Please select a role')));
@@ -364,6 +383,14 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
     setState(() => _isLoading = true);
 
     try {
+      // Determine if selected role is a section role
+      String? finalSection = _selectedSection;
+
+      // If the selected role is in the list of sections, strictly set section to that role
+      if (sections.contains(_selectedRole)) {
+        finalSection = _selectedRole;
+      }
+
       if (widget.userToEdit == null) {
         await ref
             .read(authControllerProvider.notifier)
@@ -371,8 +398,8 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
               name: _nameController.text.trim(),
-              role: _selectedRole!, // Safe now due to check above
-              section: _selectedSection,
+              role: _selectedRole!,
+              section: finalSection,
               employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
                   : _employeeIdController.text.trim(),
@@ -383,8 +410,8 @@ class _CreateUserDialogState extends ConsumerState<CreateUserDialog> {
             .updateUser(
               uid: widget.userToEdit!.id,
               name: _nameController.text.trim(),
-              role: _selectedRole!, // Safe now due to check above
-              section: _selectedSection,
+              role: _selectedRole!,
+              section: finalSection,
               employeeId: _employeeIdController.text.trim().isEmpty
                   ? null
                   : _employeeIdController.text.trim(),

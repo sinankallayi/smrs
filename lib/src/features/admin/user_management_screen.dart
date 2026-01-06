@@ -98,7 +98,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${user.email} • ${user.section != null ? user.section!.toUpperCase() : user.role.toUpperCase()}',
+                            user.role == AppRoles.manager
+                                ? '${user.email} • ${user.designation?.toUpperCase() ?? user.role.toUpperCase()}'
+                                : user.role == AppRoles.sectionHead
+                                ? '${user.email} • ${user.section?.toUpperCase() ?? "NO SECTION"}'
+                                : '${user.email} • ${user.role.toUpperCase()}',
                           ),
                           if (user.employeeId != null)
                             Padding(
